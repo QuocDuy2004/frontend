@@ -1,0 +1,42 @@
+{
+  "name": "velocart-expo-split",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "start:clear": "expo start --clear",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "dependencies": {
+    "@expo-google-fonts/signika": "^0.4.2",
+    "@expo/metro-runtime": "~56.0.15",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "axios": "^1.18.1",
+    "clsx": "^2.1.1",
+    "expo": "^56.0.12",
+    "expo-constants": "^56.0.18",
+    "expo-font": "^56.0.7",
+    "expo-linking": "^56.0.14",
+    "expo-router": "^56.2.11",
+    "expo-status-bar": "^56.0.4",
+    "lucide-react-native": "^1.21.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-hook-form": "^7.80.0",
+    "react-native-gesture-handler": "~2.31.1",
+    "react-native-reanimated": "4.3.1",
+    "react-native-reanimated-carousel": "^4.0.3",
+    "react-native-safe-area-context": "^5.8.0",
+    "react-native-screens": "^4.25.2",
+    "react-native-web": "^0.21.2",
+    "twrnc": "^4.16.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.19",
+    "typescript": "~6.0.3"
+  },
+  "private": true
+}

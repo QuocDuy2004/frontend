@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "VeloCart",
+    "slug": "velocart-expo-split",
+    "scheme": "velocart",
+    "userInterfaceStyle": "automatic",
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
