@@ -9,6 +9,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="cart" options={{ title: 'Giỏ hàng', tabBarIcon: ({ color, size }) => <ShoppingBag color={color} size={size} /> }} />
       <Tabs.Screen name="notifications" options={{ title: 'Thông báo', tabBarIcon: ({ color, size }) => <Bell color={color} size={size} /> }} />
       <Tabs.Screen name="account" options={{ title: 'Tài khoản', tabBarIcon: ({ color, size }) => <User color={color} size={size} /> }} />
+      <Tabs.Screen name="product/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+﻿import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowDownUp, Search, SlidersHorizontal, Sparkles } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from '../../components/tw';
@@ -9,10 +9,10 @@ import { useAppStore } from '../../store/appStore';
 type SortMode = 'popular' | 'price-asc' | 'price-desc' | 'name-asc';
 
 const sortOptions: { key: SortMode; label: string }[] = [
-  { key: 'popular', label: 'Noi bat' },
-  { key: 'price-asc', label: 'Gia tang dan' },
-  { key: 'price-desc', label: 'Gia giam dan' },
-  { key: 'name-asc', label: 'Ten A-Z' },
+  { key: 'popular', label: 'Nổi bật' },
+  { key: 'price-asc', label: 'Giá tăng dần' },
+  { key: 'price-desc', label: 'Giá giảm dần' },
+  { key: 'name-asc', label: 'Tên A-Z' },
 ];
 
 const getDisplayPrice = (price: { flashSalePrice?: number; discountPrice: number }) => price.flashSalePrice || price.discountPrice;
@@ -42,6 +42,9 @@ export default function CatalogScreen() {
     });
 
     return filtered.sort((a, b) => {
+      const favoritePriority = Number(favorites.includes(b.id)) - Number(favorites.includes(a.id));
+      if (favoritePriority !== 0) return favoritePriority;
+
       switch (sortMode) {
         case 'price-asc':
           return getDisplayPrice(a) - getDisplayPrice(b);
@@ -54,7 +57,7 @@ export default function CatalogScreen() {
           return (b.rating || 0) - (a.rating || 0) || (b.reviewCount || 0) - (a.reviewCount || 0);
       }
     });
-  }, [products, category, search, sortMode]);
+  }, [products, category, search, sortMode, favorites]);
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -63,8 +66,8 @@ export default function CatalogScreen() {
         <View className="rounded-[28px] bg-white p-4">
           <View className="flex-row items-center justify-between">
             <View>
-              <Text className="text-lg font-black text-zinc-950">San pham</Text>
-              <Text className="mt-1 text-[11px] font-medium text-zinc-500">Loc nhanh theo nhu cau mua sam cua ban</Text>
+              <Text className="text-lg font-black text-zinc-950">Sản phẩm</Text>
+              <Text className="mt-1 text-[11px] font-medium text-zinc-500">Lọc nhanh theo nhu cầu mua sắm của bạn</Text>
             </View>
             <View className="h-10 w-10 items-center justify-center rounded-full bg-amber-50">
               <Sparkles size={18} color="#d97706" />
@@ -76,7 +79,7 @@ export default function CatalogScreen() {
             <TextInput
               value={search}
               onChangeText={setSearch}
-              placeholder="Tim san pham, thuong hieu..."
+              placeholder="Tìm sản phẩm, thương hiệu..."
               className="flex-1 px-3 py-3 text-sm text-zinc-900"
             />
           </View>
@@ -85,16 +88,16 @@ export default function CatalogScreen() {
         <View className="rounded-[28px] bg-white p-4">
           <View className="mb-3 flex-row items-center gap-2">
             <SlidersHorizontal size={16} color="#18181b" />
-            <Text className="text-sm font-black uppercase text-zinc-950">Bo loc</Text>
+            <Text className="text-sm font-black uppercase text-zinc-950">Bộ lọc</Text>
           </View>
 
-          <Text className="mb-2 text-[11px] font-bold uppercase text-zinc-500">Danh muc</Text>
+          <Text className="mb-2 text-[11px] font-bold uppercase text-zinc-500">Danh mục</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-2">
             <Pressable
               onPress={() => setCategory('all')}
               className={`rounded-full px-4 py-2 ${category === 'all' ? 'bg-zinc-950' : 'bg-gray-100'}`}
             >
-              <Text className={`text-[11px] font-black ${category === 'all' ? 'text-white' : 'text-zinc-700'}`}>Tat ca</Text>
+              <Text className={`text-[11px] font-black ${category === 'all' ? 'text-white' : 'text-zinc-700'}`}>Tất cả</Text>
             </Pressable>
             {categories.map((item) => (
               <Pressable
@@ -107,7 +110,7 @@ export default function CatalogScreen() {
             ))}
           </ScrollView>
 
-          <Text className="mb-2 mt-4 text-[11px] font-bold uppercase text-zinc-500">Sap xep</Text>
+          <Text className="mb-2 mt-4 text-[11px] font-bold uppercase text-zinc-500">Sắp xếp</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 pr-2">
             {sortOptions.map((option) => (
               <Pressable
@@ -124,8 +127,8 @@ export default function CatalogScreen() {
         </View>
 
         <View className="flex-row items-center justify-between">
-          <Text className="text-xs font-bold uppercase text-zinc-500">Ket qua</Text>
-          <Text className="text-xs font-black text-zinc-900">{list.length} san pham</Text>
+          <Text className="text-xs font-bold uppercase text-zinc-500">Kết quả</Text>
+          <Text className="text-xs font-black text-zinc-900">{list.length} sản phẩm</Text>
         </View>
 
         <View className="gap-3">
@@ -134,7 +137,7 @@ export default function CatalogScreen() {
               key={product.id}
               product={product}
               horizontal
-              onPress={() => router.push(`/product/${product.id}`)}
+              onPress={() => router.push(`/(tabs)/product/${product.id}`)}
               onFavorite={() => onToggleFavorite(product.id)}
               isFavorite={favorites.includes(product.id)}
             />
@@ -144,3 +147,4 @@ export default function CatalogScreen() {
     </View>
   );
 }
+

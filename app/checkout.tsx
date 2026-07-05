@@ -1,24 +1,37 @@
 import { router } from 'expo-router';
-import { Check, ChevronDown, ChevronUp, CreditCard, MapPin, Pencil, Plus, ShoppingBag, TicketPercent, Truck, UserRound } from 'lucide-react-native';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, CreditCard, MapPin, Pencil, Plus, ShoppingBag, TicketPercent, Truck, UserRound } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, TextInput, View } from '../components/tw';
+import { fetchPayments } from '../lib/api';
 import { useAppStore } from '../store/appStore';
 import { useCartStore } from '../store/cartStore';
-import { Voucher } from '../types';
+import { PaymentConfig, Voucher } from '../types';
 
 const SHIPPING_METHODS = [
-  { id: 'free', name: 'Giao tiet kiem', eta: 'Nhan 2-4 ngay', price: 0, subtitle: 'Mien phi van chuyen cho don du dieu kien' },
-  { id: 'express', name: 'Giao nhanh', eta: 'Nhan nhanh trong noi thanh', price: 30000, subtitle: 'Uu tien xu ly va giao nhanh hon' },
+  { id: 'free', name: 'Giao tiết kiệm', eta: 'Nhận 2-4 ngày', price: 0, subtitle: 'Miễn phí vận chuyển cho đơn đủ điều kiện' },
+  { id: 'express', name: 'Giao nhanh', eta: 'Nhận nhanh trong nội thành', price: 30000, subtitle: 'Ưu tiên xử lý và giao nhanh hơn' },
+];
+
+type PaymentOption = {
+  id: 'COD' | 'momo' | 'vnpay' | 'visa' | 'bank_transfer';
+  title: string;
+  subtitle: string;
+  tone: string;
+  logoType: 'text' | 'image';
+  logoBg?: string;
+  logoText?: string;
+  logoUri?: string;
+  paymentStatusOnOrder?: 'pending' | 'paid';
+};
+
+const PAYMENT_OPTIONS: PaymentOption[] = [
+  { id: 'COD', title: 'Thanh toán khi nhận hàng', subtitle: 'Kiểm tra đơn rồi mới thanh toán', tone: 'bg-amber-50 border-amber-200', logoType: 'text', logoBg: 'bg-amber-500', logoText: 'COD' },
+  { id: 'momo', title: 'Ví MoMo', subtitle: 'Thanh toán nhanh bằng ví điện tử', tone: 'bg-fuchsia-50 border-fuchsia-200', logoType: 'image', logoUri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/MoMo_Logo_App.svg/960px-MoMo_Logo_App.svg.png' },
+  { id: 'vnpay', title: 'VNPay', subtitle: 'Quét mã hoặc thanh toán online', tone: 'bg-sky-50 border-sky-200', logoType: 'image', logoUri: 'https://images.seeklogo.com/logo-png/42/1/vnpay-logo-png_seeklogo-428006.png' },
+  { id: 'visa', title: 'Visa / Thẻ quốc tế', subtitle: 'Thẻ tín dụng và thẻ ghi nợ', tone: 'bg-indigo-50 border-indigo-200', logoType: 'image', logoUri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Visa_Brandmark_2021.svg/960px-Visa_Brandmark_2021.svg.png' },
 ] as const;
 
-const PAYMENT_OPTIONS = [
-  { id: 'COD', title: 'Thanh toan khi nhan hang', subtitle: 'Kiem tra don roi moi thanh toan', tone: 'bg-amber-50 border-amber-200', logoType: 'text', logoBg: 'bg-amber-500', logoText: 'COD' },
-  { id: 'momo', title: 'Vi MoMo', subtitle: 'Thanh toan nhanh bang vi dien tu', tone: 'bg-fuchsia-50 border-fuchsia-200', logoType: 'image', logoUri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/MoMo_Logo_App.svg/960px-MoMo_Logo_App.svg.png' },
-  { id: 'vnpay', title: 'VNPay', subtitle: 'Quet ma hoac thanh toan online', tone: 'bg-sky-50 border-sky-200', logoType: 'image', logoUri: 'https://images.seeklogo.com/logo-png/42/1/vnpay-logo-png_seeklogo-428006.png' },
-  { id: 'visa', title: 'Visa / The quoc te', subtitle: 'The tin dung va the ghi no', tone: 'bg-indigo-50 border-indigo-200', logoType: 'image', logoUri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/81/Visa_Brandmark_2021.svg/960px-Visa_Brandmark_2021.svg.png' },
-] as const;
-
-type PaymentMethod = (typeof PAYMENT_OPTIONS)[number]['id'];
+type PaymentMethod = PaymentOption['id'];
 type ShippingMethodOption = (typeof SHIPPING_METHODS)[number];
 type SavedAddress = {
   id: string;
@@ -28,6 +41,23 @@ type SavedAddress = {
   address: string;
   note?: string;
 };
+
+function paymentConfigToOption(item: PaymentConfig): PaymentOption | null {
+  const id = item.code as PaymentOption['id'];
+  if (!['COD', 'momo', 'vnpay', 'visa', 'bank_transfer'].includes(id)) return null;
+
+  return {
+    id,
+    title: item.title,
+    subtitle: item.subtitle || item.name,
+    tone: item.toneClassName || 'bg-zinc-50 border-zinc-200',
+    logoType: item.logoType || 'text',
+    logoBg: item.logoBgClassName,
+    logoText: item.logoText || item.code,
+    logoUri: item.logoUri,
+    paymentStatusOnOrder: item.paymentStatusOnOrder || (id === 'COD' || id === 'bank_transfer' ? 'pending' : 'paid'),
+  };
+}
 
 function PaymentLogo({
   logoType,
@@ -69,6 +99,7 @@ export default function CheckoutScreen() {
   const [notes, setNotes] = useState('');
   const [shipping, setShipping] = useState<ShippingMethodOption>(SHIPPING_METHODS[0]);
   const [payment, setPayment] = useState<PaymentMethod>('COD');
+  const [paymentOptions, setPaymentOptions] = useState<PaymentOption[]>(PAYMENT_OPTIONS);
   const [voucherCode, setVoucherCode] = useState('');
   const [voucherError, setVoucherError] = useState('');
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
@@ -77,19 +108,19 @@ export default function CheckoutScreen() {
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([
     {
       id: 'addr-home',
-      title: 'Nha rieng',
-      name: user?.name || 'Nguyen Van Hung',
+      title: 'Nhà riêng',
+      name: user?.name || 'Nguyễn Văn Hùng',
       phone: user?.phone || '0912345678',
-      address: '25 Nguyen Hue, Phuong Ben Nghe, Quan 1, TP.HCM',
-      note: 'Dia chi mac dinh',
+      address: '25 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP.HCM',
+      note: 'Địa chỉ mặc định',
     },
     {
       id: 'addr-office',
-      title: 'Van phong',
-      name: user?.name || 'Nguyen Van Hung',
+      title: 'Văn phòng',
+      name: user?.name || 'Nguyễn Văn Hùng',
       phone: user?.phone || '0912345678',
-      address: 'Tòa nha Halo, 88 Lang Ha, Dong Da, Ha Noi',
-      note: 'Nhan gio hanh chinh',
+      address: 'Tòa nhà Halo, 88 Láng Hạ, Đống Đa, Hà Nội',
+      note: 'Nhận giờ hành chính',
     },
   ]);
   const [selectedAddressId, setSelectedAddressId] = useState('addr-home');
@@ -99,7 +130,7 @@ export default function CheckoutScreen() {
 
   const [addressDraft, setAddressDraft] = useState<SavedAddress>(() => ({
     id: 'addr-home',
-    title: 'Nha rieng',
+      title: 'Nhà riêng',
     name: user?.name || '',
     phone: user?.phone || '',
     address: '',
@@ -112,6 +143,31 @@ export default function CheckoutScreen() {
       setAddress(selectedAddress.address);
     }
   }, [selectedAddress]);
+
+  useEffect(() => {
+    let alive = true;
+
+    fetchPayments()
+      .then((items) => {
+        if (!alive) return;
+        const options = items
+          .map(paymentConfigToOption)
+          .filter((item): item is PaymentOption => Boolean(item));
+
+        if (options.length === 0) return;
+        setPaymentOptions(options);
+        if (!options.some((item) => item.id === payment)) {
+          setPayment(options[0].id);
+        }
+      })
+      .catch(() => {
+        if (alive) setPaymentOptions(PAYMENT_OPTIONS);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const discountAmount = useMemo(() => {
     if (!appliedVoucher) return 0;
@@ -126,6 +182,15 @@ export default function CheckoutScreen() {
   }, [appliedVoucher, cartSubtotal]);
 
   const total = Math.max(cartSubtotal + shipping.price - discountAmount, 0);
+  const selectedPayment = paymentOptions.find((item) => item.id === payment);
+
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace('/(tabs)/cart');
+  };
 
   const selectAddress = (item: SavedAddress) => {
     setSelectedAddressId(item.id);
@@ -140,7 +205,7 @@ export default function CheckoutScreen() {
     setEditingAddressId('new');
     setAddressDraft({
       id: `addr-${Date.now()}`,
-      title: 'Dia chi moi',
+      title: 'Địa chỉ mới',
       name: name || user?.name || '',
       phone: phone || user?.phone || '',
       address: '',
@@ -174,7 +239,7 @@ export default function CheckoutScreen() {
   const applyVoucher = (code?: string) => {
     const nextCode = (code ?? voucherCode).trim().toUpperCase();
     setVoucherCode(nextCode);
-    setVoucherError('');
+      setVoucherError('Mã giảm giá không hợp lệ.');
 
     if (!nextCode) {
       setAppliedVoucher(null);
@@ -184,13 +249,13 @@ export default function CheckoutScreen() {
     const matchedVoucher = vouchers.find((item) => item.code === nextCode);
     if (!matchedVoucher) {
       setAppliedVoucher(null);
-      setVoucherError('Ma giam gia khong hop le.');
+      setVoucherError('Mã giảm giá không hợp lệ.');
       return;
     }
 
     if (cartSubtotal < matchedVoucher.minOrderValue) {
       setAppliedVoucher(null);
-      setVoucherError(`Don hang can dat toi thieu ${matchedVoucher.minOrderValue.toLocaleString('vi-VN')}d de dung ma nay.`);
+      setVoucherError(`Đơn hàng cần đạt tối thiểu ${matchedVoucher.minOrderValue.toLocaleString('vi-VN')}đ để dùng mã này.`);
       return;
     }
 
@@ -222,7 +287,7 @@ export default function CheckoutScreen() {
       totalAmount: total,
       shippingUnit: shipping.name,
       paymentMethod: payment,
-      paymentStatus: payment === 'COD' ? 'pending' : 'paid',
+      paymentStatus: selectedPayment?.paymentStatusOnOrder || (payment === 'COD' || payment === 'bank_transfer' ? 'pending' : 'paid'),
       orderStatus: 'pending',
       createdAt: new Date().toISOString(),
     } as const;
@@ -230,17 +295,28 @@ export default function CheckoutScreen() {
     cartItems.forEach((item) => onUpdateInventory(item.product.id, item.quantity));
     onPlaceOrder(order);
     clearCart();
-    router.replace('/(tabs)/account');
+    router.replace({
+      pathname: '/order-success',
+      params: {
+        orderId: order.id,
+        total: String(total),
+        paymentMethod: payment,
+      },
+    });
   };
 
   if (cartItems.length === 0) {
     return (
       <View className="flex-1 bg-gray-50 px-4 py-6">
+        <Pressable onPress={goBack} className="mb-4 flex-row items-center gap-2 self-start">
+          <ArrowLeft size={18} color="#52525b" />
+          <Text className="font-bold text-gray-600">Quay lại</Text>
+        </Pressable>
         <View className="rounded-[28px] bg-white p-6">
-          <Text className="text-xl font-black text-zinc-950">Thanh toan</Text>
-          <Text className="mt-3 text-sm leading-6 text-zinc-500">Gio hang cua ban dang trong. Chon them san pham truoc khi thanh toan nhe.</Text>
+          <Text className="text-xl font-black text-zinc-950">Thanh toán</Text>
+          <Text className="mt-3 text-sm leading-6 text-zinc-500">Giỏ hàng của bạn đang trống. Chọn thêm sản phẩm trước khi thanh toán nhé.</Text>
           <Pressable onPress={() => router.replace('/(tabs)/catalog')} className="mt-5 rounded-2xl bg-amber-500 py-3.5">
-            <Text className="text-center text-sm font-black text-white">Mua sam ngay</Text>
+            <Text className="text-center text-sm font-black text-white">Mua sắm ngay</Text>
           </Pressable>
         </View>
       </View>
@@ -250,8 +326,15 @@ export default function CheckoutScreen() {
   return (
     <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="gap-4 p-4 pb-28">
       <View className="rounded-[28px] bg-white p-5">
-        <Text className="text-xl font-black text-zinc-950">Thanh toan</Text>
-        <Text className="mt-1 text-[11px] font-medium text-zinc-500">Kiem tra thong tin san pham, dia chi nhan hang va phuong thuc thanh toan</Text>
+        <View className="flex-row items-start gap-3">
+          <Pressable onPress={goBack} className="h-10 w-10 items-center justify-center rounded-full bg-zinc-100">
+            <ArrowLeft size={18} color="#52525b" />
+          </Pressable>
+          <View className="flex-1">
+            <Text className="text-xl font-black text-zinc-950">Thanh toán</Text>
+            <Text className="mt-1 text-[11px] font-medium text-zinc-500">Kiểm tra thông tin sản phẩm, địa chỉ nhận hàng và phương thức thanh toán</Text>
+          </View>
+        </View>
       </View>
 
       <View className="rounded-[28px] bg-white p-4">
@@ -259,11 +342,11 @@ export default function CheckoutScreen() {
           <View className="flex-1">
             <View className="mb-3 flex-row items-center gap-2">
               <ShoppingSectionIcon icon={UserRound} color="#d97706" />
-              <Text className="text-sm font-black uppercase text-zinc-950">Thong tin nhan hang</Text>
+              <Text className="text-sm font-black uppercase text-zinc-950">Thông tin nhận hàng</Text>
             </View>
-            <Text className="text-sm font-black text-zinc-950">{name || selectedAddress?.name || 'Chon dia chi nhan hang'}</Text>
+            <Text className="text-sm font-black text-zinc-950">{name || selectedAddress?.name || 'Chọn địa chỉ nhận hàng'}</Text>
             <Text className="mt-1 text-xs font-bold text-zinc-500">{phone || selectedAddress?.phone}</Text>
-            <Text className="mt-2 text-xs leading-5 text-zinc-600">{address || selectedAddress?.address || 'Them dia chi de tiep tuc thanh toan'}</Text>
+            <Text className="mt-2 text-xs leading-5 text-zinc-600">{address || selectedAddress?.address || 'Thêm địa chỉ để tiếp tục thanh toán'}</Text>
             {selectedAddress?.note ? <Text className="mt-2 text-[11px] font-semibold text-amber-700">{selectedAddress.note}</Text> : null}
           </View>
           {showAddressSelector ? <ChevronUp size={18} color="#71717a" /> : <ChevronDown size={18} color="#71717a" />}
@@ -279,7 +362,7 @@ export default function CheckoutScreen() {
                       <Text className="text-sm font-black text-zinc-900">{item.title}</Text>
                       {selectedAddressId === item.id ? (
                         <View className="rounded-full bg-amber-500 px-2 py-1">
-                          <Text className="text-[10px] font-black text-white">Dang dung</Text>
+                          <Text className="text-[10px] font-black text-white">Đang dùng</Text>
                         </View>
                       ) : null}
                     </View>
@@ -296,33 +379,33 @@ export default function CheckoutScreen() {
 
             <Pressable onPress={startAddAddress} className="flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-amber-300 bg-amber-50 py-3">
               <Plus size={16} color="#d97706" />
-              <Text className="text-sm font-black text-amber-700">Them dia chi moi</Text>
+              <Text className="text-sm font-black text-amber-700">Thêm địa chỉ mới</Text>
             </Pressable>
 
             {editingAddressId ? (
               <View className="gap-3 rounded-2xl border border-zinc-200 bg-white p-3">
-                <Text className="text-xs font-black uppercase text-zinc-500">{editingAddressId === 'new' ? 'Them dia chi moi' : 'Chinh sua dia chi'}</Text>
-                <Field label="Ten goi nho">
+                <Text className="text-xs font-black uppercase text-zinc-500">{editingAddressId === 'new' ? 'Thêm địa chỉ mới' : 'Chỉnh sửa địa chỉ'}</Text>
+                <Field label="Tên gợi nhớ">
                   <TextInput value={addressDraft.title} onChangeText={(value) => setAddressDraft((current) => ({ ...current, title: value }))} placeholder="Nha rieng / Van phong" className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
                 </Field>
-                <Field label="Ho va ten">
-                  <TextInput value={addressDraft.name} onChangeText={(value) => setAddressDraft((current) => ({ ...current, name: value }))} placeholder="Nhap ten nguoi nhan" className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
+                <Field label="Họ và tên">
+                  <TextInput value={addressDraft.name} onChangeText={(value) => setAddressDraft((current) => ({ ...current, name: value }))} placeholder="Nhập tên người nhận" className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
                 </Field>
-                <Field label="So dien thoai">
-                  <TextInput value={addressDraft.phone} onChangeText={(value) => setAddressDraft((current) => ({ ...current, phone: value }))} placeholder="Nhap so dien thoai" keyboardType="phone-pad" className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
+                <Field label="Số điện thoại">
+                  <TextInput value={addressDraft.phone} onChangeText={(value) => setAddressDraft((current) => ({ ...current, phone: value }))} placeholder="Nhập số điện thoại" keyboardType="phone-pad" className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
                 </Field>
-                <Field label="Dia chi">
-                  <TextInput value={addressDraft.address} onChangeText={(value) => setAddressDraft((current) => ({ ...current, address: value }))} placeholder="So nha, duong, phuong xa..." multiline className="min-h-24 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
+                <Field label="Địa chỉ">
+                  <TextInput value={addressDraft.address} onChangeText={(value) => setAddressDraft((current) => ({ ...current, address: value }))} placeholder="Số nhà, đường, phường xã..." multiline className="min-h-24 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
                 </Field>
-                <Field label="Ghi chu">
-                  <TextInput value={addressDraft.note || ''} onChangeText={(value) => setAddressDraft((current) => ({ ...current, note: value }))} placeholder="Vi du: goi truoc khi giao" className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
+                <Field label="Ghi chú">
+                  <TextInput value={addressDraft.note || ''} onChangeText={(value) => setAddressDraft((current) => ({ ...current, note: value }))} placeholder="Ví dụ: gọi trước khi giao" className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
                 </Field>
                 <View className="flex-row gap-3">
                   <Pressable onPress={() => setEditingAddressId(null)} className="flex-1 rounded-2xl bg-zinc-100 py-3">
-                    <Text className="text-center text-sm font-black text-zinc-700">Huy</Text>
+                    <Text className="text-center text-sm font-black text-zinc-700">Hủy</Text>
                   </Pressable>
                   <Pressable onPress={saveAddress} className="flex-1 rounded-2xl bg-amber-500 py-3">
-                    <Text className="text-center text-sm font-black text-white">Luu dia chi</Text>
+                    <Text className="text-center text-sm font-black text-white">Lưu địa chỉ</Text>
                   </Pressable>
                 </View>
               </View>
@@ -332,10 +415,10 @@ export default function CheckoutScreen() {
 
         <View className="mt-4 gap-3 border-t border-zinc-100 pt-4">
           <Field label="Email">
-            <TextInput value={email} onChangeText={setEmail} placeholder="Nhap email nhan thong bao" keyboardType="email-address" autoCapitalize="none" className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
+            <TextInput value={email} onChangeText={setEmail} placeholder="Nhập email nhận thông báo" keyboardType="email-address" autoCapitalize="none" className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
           </Field>
-          <Field label="Loi nhan cho shop">
-            <TextInput value={notes} onChangeText={setNotes} placeholder="Vi du: dong hang ky, giao sau 18h, goi truoc khi giao..." multiline className="min-h-20 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
+                <Field label="Địa chỉ">
+            <TextInput value={notes} onChangeText={setNotes} placeholder="Ví dụ: đóng hàng kỹ, giao sau 18h, gọi trước khi giao..." multiline className="min-h-20 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900" />
           </Field>
         </View>
       </View>
@@ -343,7 +426,7 @@ export default function CheckoutScreen() {
       <View className="rounded-[28px] bg-white p-4">
         <View className="mb-3 flex-row items-center gap-2">
           <ShoppingSectionIcon icon={ShoppingBag} color="#18181b" />
-          <Text className="text-sm font-black uppercase text-zinc-950">San pham trong don</Text>
+          <Text className="text-sm font-black uppercase text-zinc-950">Sản phẩm trong đơn</Text>
         </View>
         <View className="gap-3">
           {cartItems.map((item) => (
@@ -354,12 +437,12 @@ export default function CheckoutScreen() {
                   <Text numberOfLines={2} className="text-sm font-black leading-5 text-zinc-900">{item.product.name}</Text>
                   <Text className="mt-1 text-[11px] font-medium text-zinc-500">{item.product.brand}</Text>
                   <View className="mt-2 flex-row flex-wrap gap-2">
-                    {item.selectedColor ? <Badge label={`Mau: ${item.selectedColor}`} /> : null}
+                    {item.selectedColor ? <Badge label={`Màu: ${item.selectedColor}`} /> : null}
                     {item.selectedSize ? <Badge label={`Size: ${item.selectedSize}`} /> : null}
-                    {item.selectedVersion ? <Badge label={`Phien ban: ${item.selectedVersion}`} /> : null}
+                    {item.selectedVersion ? <Badge label={`Phiên bản: ${item.selectedVersion}`} /> : null}
                   </View>
                   <View className="mt-3 flex-row items-center justify-between">
-                    <Text className="text-xs font-bold text-zinc-500">So luong: {item.quantity}</Text>
+                    <Text className="text-xs font-bold text-zinc-500">Số lượng: {item.quantity}</Text>
                     <Text className="text-sm font-black text-red-500">{((item.product.flashSalePrice || item.product.discountPrice) * item.quantity).toLocaleString('vi-VN')}d</Text>
                   </View>
                 </View>
@@ -372,7 +455,7 @@ export default function CheckoutScreen() {
       <View className="rounded-[28px] bg-white p-4">
         <View className="mb-3 flex-row items-center gap-2">
           <ShoppingSectionIcon icon={Truck} color="#d97706" />
-          <Text className="text-sm font-black uppercase text-zinc-950">Van chuyen</Text>
+          <Text className="text-sm font-black uppercase text-zinc-950">Vận chuyển</Text>
         </View>
         <View className="gap-3">
           {SHIPPING_METHODS.map((item) => (
@@ -388,7 +471,7 @@ export default function CheckoutScreen() {
                   <Text className="mt-1 text-[11px] text-zinc-400">{item.subtitle}</Text>
                 </View>
                 <View className="items-end">
-                  <Text className="text-sm font-black text-zinc-950">{item.price === 0 ? 'Mien phi' : `${item.price.toLocaleString('vi-VN')}d`}</Text>
+                  <Text className="text-sm font-black text-zinc-950">{item.price === 0 ? 'Miễn phí' : `${item.price.toLocaleString('vi-VN')}đ`}</Text>
                   {shipping.id === item.id ? <Check size={16} color="#d97706" /> : null}
                 </View>
               </View>
@@ -400,7 +483,7 @@ export default function CheckoutScreen() {
       <View className="rounded-[28px] bg-white p-4">
         <View className="mb-3 flex-row items-center gap-2">
           <ShoppingSectionIcon icon={TicketPercent} color="#d97706" />
-          <Text className="text-sm font-black uppercase text-zinc-950">Ma giam gia</Text>
+          <Text className="text-sm font-black uppercase text-zinc-950">Mã giảm giá</Text>
         </View>
 
         <View className="flex-row gap-2">
@@ -408,14 +491,14 @@ export default function CheckoutScreen() {
             value={voucherCode}
             onChangeText={(value) => {
               setVoucherCode(value.toUpperCase());
-              setVoucherError('');
+      setVoucherError('Mã giảm giá không hợp lệ.');
             }}
-            placeholder="Nhap ma giam gia"
+            placeholder="Nhập mã giảm giá"
             autoCapitalize="characters"
             className="flex-1 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-900"
           />
           <Pressable onPress={() => applyVoucher()} className="rounded-2xl bg-amber-500 px-4 py-3">
-            <Text className="text-sm font-black text-white">Ap dung</Text>
+            <Text className="text-sm font-black text-white">Áp dụng</Text>
           </Pressable>
         </View>
 
@@ -424,7 +507,7 @@ export default function CheckoutScreen() {
         {appliedVoucher ? (
           <View className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
             <Text className="text-xs font-black uppercase text-emerald-700">{appliedVoucher.code}</Text>
-            <Text className="mt-1 text-[11px] leading-4 text-emerald-700">Da ap dung ma giam gia cho don hang nay.</Text>
+            <Text className="mt-1 text-[11px] leading-4 text-emerald-700">Đã áp dụng mã giảm giá cho đơn hàng này.</Text>
           </View>
         ) : null}
 
@@ -440,12 +523,12 @@ export default function CheckoutScreen() {
                   <Text className="text-xs font-black uppercase text-amber-700">{voucher.code}</Text>
                   <Text className="mt-1 text-[11px] leading-4 text-zinc-600">
                     {voucher.discountType === 'fixed'
-                      ? `Giam ${voucher.discountValue.toLocaleString('vi-VN')}d cho don tu ${voucher.minOrderValue.toLocaleString('vi-VN')}d`
-                      : `Giam ${voucher.discountValue}% toi da ${(voucher.maxDiscount || 0).toLocaleString('vi-VN')}d`}
+                      ? `Giảm ${voucher.discountValue.toLocaleString('vi-VN')}đ cho đơn từ ${voucher.minOrderValue.toLocaleString('vi-VN')}đ`
+                      : `Giảm ${voucher.discountValue}% tối đa ${(voucher.maxDiscount || 0).toLocaleString('vi-VN')}đ`}
                   </Text>
                 </View>
                 <View className="rounded-full bg-white px-2.5 py-1.5">
-                  <Text className="text-[10px] font-black text-zinc-700">{appliedVoucher?.code === voucher.code ? 'Da chon' : 'Chon'}</Text>
+                  <Text className="text-[10px] font-black text-zinc-700">{appliedVoucher?.code === voucher.code ? 'Đã chọn' : 'Chọn'}</Text>
                 </View>
               </View>
             </Pressable>
@@ -456,10 +539,10 @@ export default function CheckoutScreen() {
       <View className="rounded-[28px] bg-white p-4">
         <View className="mb-3 flex-row items-center gap-2">
           <ShoppingSectionIcon icon={CreditCard} color="#18181b" />
-          <Text className="text-sm font-black uppercase text-zinc-950">Phuong thuc thanh toan</Text>
+          <Text className="text-sm font-black uppercase text-zinc-950">Phương thức thanh toán</Text>
         </View>
         <View className="gap-3">
-          {PAYMENT_OPTIONS.map((option) => (
+          {paymentOptions.map((option) => (
             <Pressable
               key={option.id}
               onPress={() => setPayment(option.id)}
@@ -488,21 +571,21 @@ export default function CheckoutScreen() {
       <View className="rounded-[28px] bg-white p-4">
         <View className="mb-3 flex-row items-center gap-2">
           <ShoppingSectionIcon icon={MapPin} color="#d97706" />
-          <Text className="text-sm font-black uppercase text-zinc-950">Tong thanh toan</Text>
+          <Text className="text-sm font-black uppercase text-zinc-950">Tổng thanh toán</Text>
         </View>
         <View className="gap-2">
-          <SummaryRow label="Tien hang" value={`${cartSubtotal.toLocaleString('vi-VN')}d`} />
-          <SummaryRow label="Phi van chuyen" value={`${shipping.price.toLocaleString('vi-VN')}d`} />
-          <SummaryRow label="Giam gia" value={`-${discountAmount.toLocaleString('vi-VN')}d`} valueClassName="text-emerald-600" />
+          <SummaryRow label="Tiền hàng" value={`${cartSubtotal.toLocaleString('vi-VN')}đ`} />
+          <SummaryRow label="Phí vận chuyển" value={`${shipping.price.toLocaleString('vi-VN')}đ`} />
+          <SummaryRow label="Giảm giá" value={`-${discountAmount.toLocaleString('vi-VN')}đ`} valueClassName="text-emerald-600" />
           <View className="my-2 h-px bg-zinc-100" />
-          <SummaryRow label="Tong cong" value={`${total.toLocaleString('vi-VN')}d`} labelClassName="text-sm font-black text-zinc-950" valueClassName="text-lg font-black text-red-500" />
+          <SummaryRow label="Tổng cộng" value={`${total.toLocaleString('vi-VN')}đ`} labelClassName="text-sm font-black text-zinc-950" valueClassName="text-lg font-black text-red-500" />
         </View>
 
         <Pressable
           onPress={submit}
           className="mt-5 rounded-2xl bg-amber-500 py-3.5"
         >
-          <Text className="text-center text-sm font-black text-white">Dat hang</Text>
+          <Text className="text-center text-sm font-black text-white">Đặt hàng</Text>
         </Pressable>
       </View>
     </ScrollView>

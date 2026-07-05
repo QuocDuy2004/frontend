@@ -13,24 +13,29 @@ import {
   XCircle,
 } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
-import { KeyboardAvoidingView, Pressable, ScrollView, Text, TextInput, View } from '../components/tw';
+import { Image, KeyboardAvoidingView, Pressable, ScrollView, Text, TextInput, View } from '../components/tw';
+import { API_BASE_URL, loginWithPassword, registerAccount, type AuthSession } from '../lib/api';
 import { useAppStore } from '../store/appStore';
 
 type AuthMode = 'login' | 'register';
 
 const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&auto=format&fit=crop&q=80';
+const googleLogo = 'https://developers.google.com/identity/images/g-logo.png';
+const facebookLogo = 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/2023_Facebook_icon.svg/120px-2023_Facebook_icon.svg.png';
 
 export default function AuthScreen() {
   const onLogin = useAppStore(s => s.onLogin);
   const [mode, setMode] = useState<AuthMode>('login');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('khachhang@velocart.vn');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('123456');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -51,22 +56,22 @@ export default function AuthScreen() {
     setErrorMsg('');
     setSuccessMsg('');
     setConfirmPassword('');
-    if (nextMode === 'login') {
-      setEmail('khachhang@velocart.vn');
-      setPassword('123456');
-    } else {
-      setEmail('');
-      setPassword('');
-    }
+    setEmail('');
+    setPassword(nextMode === 'login' ? '123456' : '');
   };
 
-  const completeAuth = (user: { name: string; phone: string; email: string }) => {
-    onLogin({ ...user, avatar: defaultAvatar });
+  const completeAuth = async (session: AuthSession) => {
+    await onLogin(
+      { ...session.user, avatar: session.user.avatar || session.user.avatarUrl || defaultAvatar },
+      session.token,
+      remember,
+      session,
+    );
     setSuccessMsg(isLogin ? 'Đăng nhập thành công!' : 'Đăng ký tài khoản thành công!');
     setTimeout(() => router.replace('/(tabs)/account'), 500);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setErrorMsg('');
     setSuccessMsg('');
 
@@ -80,19 +85,27 @@ export default function AuthScreen() {
       return;
     }
 
-    completeAuth({
-      name: isLogin ? 'Khách hàng VeloCart' : name.trim(),
-      phone: isLogin ? '0912345678' : phone.trim(),
-      email: email.trim(),
-    });
+    setIsSubmitting(true);
+    try {
+      const session = isLogin
+        ? await loginWithPassword({ usernameOrEmail: email.trim(), password })
+        : await registerAccount({
+            name: name.trim(),
+            phone: phone.trim(),
+            email: email.trim().toLowerCase(),
+            password,
+          });
+
+      await completeAuth(session);
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : 'Không thể kết nối đến backend.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSocialLogin = (provider: 'Google' | 'Facebook') => {
-    completeAuth({
-      name: `${provider} User`,
-      phone: provider === 'Google' ? '0981112223' : '0935556667',
-      email: provider === 'Google' ? 'google.account@gmail.com' : 'facebook.user@gmail.com',
-    });
+    setErrorMsg(`Đăng nhập bằng ${provider} chưa được kết nối với backend.`);
   };
 
   const handleBack = () => {
@@ -118,10 +131,10 @@ export default function AuthScreen() {
         <View className="overflow-hidden rounded-3xl border border-zinc-800 bg-white shadow-2xl">
           <View className="border-b border-zinc-100 p-5">
             <View className="flex-row items-center justify-between">
-              <View>
+              <View className="flex-1 pr-3">
                 <Text className="text-xl font-black text-zinc-950">{isLogin ? 'Đăng nhập' : 'Đăng ký tài khoản'}</Text>
                 <Text className="mt-1 text-xs font-semibold text-zinc-500">
-                  {isLogin ? 'Truy cập ví voucher và đơn hàng của bạn' : 'Tạo hồ sơ mua sắm mới tại VeloCart'}
+                  {isLogin ? `API: ${API_BASE_URL}` : 'Tạo hồ sơ mua sắm mới tại VeloCart'}
                 </Text>
               </View>
               <View className="h-11 w-11 items-center justify-center rounded-2xl bg-amber-100">
@@ -186,7 +199,7 @@ export default function AuthScreen() {
                 </>
               ) : null}
 
-              <AuthField icon={<Mail size={16} color="#71717a" />} label={isLogin ? 'Email hoặc số điện thoại' : 'Địa chỉ email'}>
+              <AuthField icon={<Mail size={16} color="#71717a" />} label={isLogin ? 'Email hoặc username' : 'Địa chỉ email'}>
                 <TextInput
                   value={email}
                   onChangeText={(value) => {
@@ -195,7 +208,7 @@ export default function AuthScreen() {
                   }}
                   autoCapitalize="none"
                   keyboardType="email-address"
-                  placeholder="example@gmail.com hoặc SĐT"
+                  placeholder="example@gmail.com"
                   placeholderTextColor="#a1a1aa"
                   className="text-sm font-bold text-zinc-950"
                 />
@@ -245,18 +258,17 @@ export default function AuthScreen() {
                   </View>
                   <Text className="text-xs font-bold text-zinc-600">Ghi nhớ đăng nhập</Text>
                 </Pressable>
-                <Pressable>
-                  <Text className="text-xs font-black text-amber-600">Quên mật khẩu?</Text>
-                </Pressable>
               </View>
             ) : (
               <Text className="mt-4 text-[11px] leading-5 text-zinc-500">
-                Sau khi đăng ký, bạn có thể dùng tài khoản để theo dõi đơn hàng, tích điểm và nhận ưu đãi thành viên.
+                Sau khi đăng ký, tài khoản sẽ được tạo trên backend và đăng nhập lại để lấy jwt-token.
               </Text>
             )}
 
-            <Pressable onPress={handleSubmit} className={`mt-5 rounded-2xl py-4 ${canSubmit ? 'bg-amber-500' : 'bg-zinc-300'}`}>
-              <Text className="text-center text-sm font-black text-white">{isLogin ? 'Đăng nhập' : 'Đăng ký'}</Text>
+            <Pressable disabled={!canSubmit || isSubmitting} onPress={handleSubmit} className={`mt-5 rounded-2xl py-4 ${canSubmit && !isSubmitting ? 'bg-amber-500' : 'bg-zinc-300'}`}>
+              <Text className="text-center text-sm font-black text-white">
+                {isSubmitting ? 'Đang xử lý...' : isLogin ? 'Đăng nhập' : 'Đăng ký'}
+              </Text>
             </Pressable>
 
             {isLogin ? (
@@ -268,8 +280,8 @@ export default function AuthScreen() {
                 </View>
 
                 <View className="flex-row gap-3">
-                  <SocialButton label="Google" mark="G" onPress={() => handleSocialLogin('Google')} />
-                  <SocialButton label="Facebook" mark="f" onPress={() => handleSocialLogin('Facebook')} />
+                  <SocialButton label="Google" provider="Google" onPress={() => handleSocialLogin('Google')} />
+                  <SocialButton label="Facebook" provider="Facebook" onPress={() => handleSocialLogin('Facebook')} />
                 </View>
               </>
             ) : null}
@@ -287,7 +299,7 @@ export default function AuthScreen() {
   );
 }
 
-function AuthField({ children, icon, label }: { children: React.ReactNode; icon: React.ReactNode; label: string }) {
+function AuthField({ children, icon, label }: { children: ReactNode; icon: ReactNode; label: string }) {
   return (
     <View>
       <Text className="mb-1 text-xs font-bold text-zinc-600">{label}</Text>
@@ -299,12 +311,16 @@ function AuthField({ children, icon, label }: { children: React.ReactNode; icon:
   );
 }
 
-function SocialButton({ label, mark, onPress }: { label: string; mark: string; onPress: () => void }) {
+function SocialButton({ label, provider, onPress }: { label: string; provider: 'Google' | 'Facebook'; onPress: () => void }) {
+  const isGoogle = provider === 'Google';
+
   return (
     <Pressable onPress={onPress} className="flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-zinc-200 py-3">
-      <View className="h-6 w-6 items-center justify-center rounded-full bg-zinc-100">
-        <Text className="text-xs font-black text-zinc-900">{mark}</Text>
-      </View>
+      {isGoogle ? (
+        <Image source={{ uri: googleLogo }} className="h-5 w-5" resizeMode="contain" />
+      ) : (
+        <Image source={{ uri: facebookLogo }} className="h-6 w-6 rounded-full" resizeMode="contain" />
+      )}
       <Text className="text-xs font-black text-zinc-800">{label}</Text>
     </Pressable>
   );

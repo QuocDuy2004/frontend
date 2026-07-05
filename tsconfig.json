@@ -1,5 +1,17 @@
 {
-  "compilerOptions": {},
   "extends": "expo/tsconfig.base",
-  "exclude": ["node_modules", "dist", "dist-*", "vietnamese-e-commerce-platform"]
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "dist-*",
+    "vietnamese-e-commerce-platform"
+  ]
 }

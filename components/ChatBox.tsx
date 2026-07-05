@@ -1,10 +1,11 @@
-import { router, useSegments } from 'expo-router';
+﻿import { router, useSegments } from 'expo-router';
 import { Bot, HelpCircle, Plus, Send, ShoppingBag, X } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, TextInput, View } from './tw';
 import { useAppStore } from '../store/appStore';
 import { useCartStore } from '../store/cartStore';
 import { Product } from '../types';
+import { useCartFlyAnimation } from './CartFlyProvider';
 
 type Suggestion = {
   id: string;
@@ -39,24 +40,26 @@ const buildSuggestion = (product: Product): Suggestion => ({
 export default function ChatBox() {
   const segments = useSegments();
   const products = useAppStore((state) => state.products);
+  const categories = useAppStore((state) => state.categories);
   const addToCart = useCartStore((state) => state.addToCart);
+  const { flyToCart } = useCartFlyAnimation();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome',
       sender: 'bot',
-      text: 'Xin chao. VeloCart co the ho tro tu van san pham, voucher, giao hang va len don nhanh cho ban ngay tai day.',
+      text: 'Xin chao. VeloCart co the ho tro tu van sáº£n pháº©m, voucher, giao hang va len Ä‘Æ¡n nhanh cho ban ngay tai day.',
       time: '16:15',
       actions: [
-        { id: 'go-catalog', label: 'Xem san pham', type: 'catalog' },
-        { id: 'go-cart', label: 'Mo gio hang', type: 'cart' },
+        { id: 'go-catalog', label: 'Xem sáº£n pháº©m', type: 'catalog' },
+        { id: 'go-cart', label: 'MÃ£ giá» hÃ ng', type: 'cart' },
       ],
     },
   ]);
 
   const quickReplies = useMemo(
-    () => ['Tu van dien thoai', 'Co voucher nao khong?', 'San pham duoi 500K', 'Phu kien ban chay'],
+    () => ['T? v?n Ä‘iá»‡n thoáº¡i', 'C? voucher n?o khÃ ng?', 'Sáº£n pháº©m duoi 500K', 'Phá»¥ kiá»‡n bÃ¡n cháº¡y'],
     [],
   );
 
@@ -81,20 +84,25 @@ export default function ChatBox() {
 
   const getResponse = (query: string): Omit<ChatMessage, 'id' | 'time'> => {
     const normalized = query.toLowerCase().trim();
+    const categoryMatches = (product: Product, keywords: string[]) => {
+      const category = categories.find((item) => item.id === product.categoryId);
+      const haystack = `${category?.name || ''} ${category?.slug || ''} ${product.categoryId}`.toLowerCase();
+      return keywords.some((keyword) => haystack.includes(keyword));
+    };
 
     if (normalized.includes('voucher') || normalized.includes('ma giam') || normalized.includes('khuyen mai')) {
       return {
         sender: 'bot',
-        text: 'Hien tai ban co the dung LIXI2026 de giam 100K va FREESHIP cho don tu 150K. Neu can, minh co the dua ban den khu san pham dang co deal tot.',
-        actions: [{ id: 'promo-catalog', label: 'Xem san pham', type: 'catalog' }],
+        text: 'Hiá»‡n táº¡i báº¡n cÃ³ thá»ƒ dÃ¹ng LIXI2026 Ä‘á»ƒ giáº£m 100K vÃ  FREESHIP cho Ä‘Æ¡n tá»« 150K. Náº¿u cáº§n, mÃ¬nh cÃ³ thá»ƒ Ä‘Æ°a báº¡n Ä‘áº¿n khu sáº£n pháº©m Ä‘ang cÃ³ deal tá»‘t.',
+        actions: [{ id: 'promo-catalog', label: 'Xem sáº£n pháº©m', type: 'catalog' }],
       };
     }
 
     if (normalized.includes('giao hang') || normalized.includes('freeship') || normalized.includes('van chuyen')) {
       return {
         sender: 'bot',
-        text: 'VeloCart uu tien giao nhanh 2H noi thanh va ho tro giao toan quoc. Ban muon minh goi y nhom san pham de len don nhanh khong?',
-        actions: [{ id: 'shipping-catalog', label: 'Tu van san pham', type: 'catalog' }],
+        text: 'VeloCart Æ°u tiÃªn giao nhanh 2H ná»™i thÃ nh vÃ  há»— trá»£ giao toÃ n quá»‘c. Báº¡n muá»‘n mÃ¬nh gá»£i Ã½ nhÃ³m sáº£n pháº©m Ä‘á»ƒ lÃªn Ä‘Æ¡n nhanh khÃ´ng?',
+        actions: [{ id: 'shipping-catalog', label: 'Tu van sáº£n pháº©m', type: 'catalog' }],
       };
     }
 
@@ -108,7 +116,7 @@ export default function ChatBox() {
     if (matchingProducts.length > 0) {
       return {
         sender: 'bot',
-        text: 'Minh tim thay vai san pham phu hop. Ban co the them vao gio hoac mo chi tiet de xem ky hon.',
+        text: 'Minh tim thay vai sáº£n pháº©m phu hop. Ban co the them vao gio hoac mo chi tiet de xem ky hon.',
         suggestions: matchingProducts.map(buildSuggestion),
       };
     }
@@ -116,16 +124,16 @@ export default function ChatBox() {
     if (normalized.includes('dien thoai') || normalized.includes('iphone') || normalized.includes('samsung')) {
       return {
         sender: 'bot',
-        text: 'Neu ban dang tim dien thoai, day la nhom noi bat hien tai. iPhone hop voi nhu cau camera va he sinh thai, con Galaxy manh ve AI va man hinh.',
-        suggestions: products.filter((product) => product.categoryId === 'phones-laptops').slice(0, 3).map(buildSuggestion),
+        text: 'N?u b?n Äang t?m Ä‘iá»‡n thoáº¡i, ??y l? nh?m n?i b?t hi?n t?i. iPhone h?p v?i nhu c?u camera v? h? sinh th?i, c?n Galaxy m?nh v? AI v? m?n h?nh.',
+        suggestions: products.filter((product) => categoryMatches(product, ['dien thoai', 'điện thoại', 'laptop', 'phone'])).slice(0, 3).map(buildSuggestion),
       };
     }
 
     if (normalized.includes('thoi trang') || normalized.includes('ao') || normalized.includes('fashion')) {
       return {
         sender: 'bot',
-        text: 'Day la nhom thoi trang dang duoc khach xem nhieu. Ban co the them vao gio ngay neu thay phu hop.',
-        suggestions: products.filter((product) => product.categoryId === 'fashion').slice(0, 3).map(buildSuggestion),
+        text: '??y l? nh?m th?i trang Äang ???c kh?ch xem nhi?u. B?n c? th? th?m v?o gi? ngay n?u th?y ph? h?p.',
+        suggestions: products.filter((product) => categoryMatches(product, ['thoi trang', 'thời trang', 'fashion'])).slice(0, 3).map(buildSuggestion),
       };
     }
 
@@ -140,14 +148,14 @@ export default function ChatBox() {
     if (normalized.includes('phu kien') || normalized.includes('tai nghe')) {
       return {
         sender: 'bot',
-        text: 'Nhom phu kien nay dang duoc hoi kha nhieu. Ban co the mo chi tiet hoac them vao gio ngay trong chat.',
-        suggestions: products.filter((product) => product.categoryId === 'accessories').slice(0, 3).map(buildSuggestion),
+        text: 'Nh?m ph? ki?n n?y Äang ???c h?i kh? nhi?u. B?n c? th? m? chi ti?t ho?c th?m v?o gi? ngay trong chat.',
+        suggestions: products.filter((product) => categoryMatches(product, ['phu kien', 'phụ kiện', 'accessories'])).slice(0, 3).map(buildSuggestion),
       };
     }
 
     return {
       sender: 'bot',
-      text: 'Minh co the ho tro theo san pham, muc gia, voucher, giao hang hoac tu van nhanh theo nhu cau. Ban thu hoi nhu: "dien thoai", "duoi 500K", "voucher", hoac "phu kien ban chay".',
+      text: 'MÃ¬nh cÃ³ thá»ƒ há»— trá»£ theo sáº£n pháº©m, má»©c giÃ¡, voucher, giao hÃ ng hoáº·c tÆ° váº¥n nhanh theo nhu cáº§u. Báº¡n thá»­ há»i nhÆ°: "Ä‘iá»‡n thoáº¡i", "dÆ°á»›i 500K", "voucher", hoáº·c "phá»¥ kiá»‡n bÃ¡n cháº¡y".',
       actions: [{ id: 'fallback-catalog', label: 'Mo danh muc', type: 'catalog' }],
     };
   };
@@ -170,18 +178,23 @@ export default function ChatBox() {
     setText('');
   };
 
-  const addProductToCart = (product: Product) => {
+  const addProductToCart = (product: Product, event?: any) => {
     addToCart(product, 1);
+    flyToCart({
+      x: event?.nativeEvent?.pageX || 300,
+      y: event?.nativeEvent?.pageY || 520,
+      imageUri: product.image,
+    });
     appendBotMessage({
       sender: 'bot',
-      text: `Da them "${product.name}" vao gio hang. Ban co the mo gio hang de thanh toan hoac tiep tuc mua sam.`,
-      actions: [{ id: `cart-${product.id}`, label: 'Mo gio hang', type: 'cart' }],
+      text: `ÄÃ£ thÃªm "${product.name}" v?o giá» hÃ ng. B?n c? th? m? giá» hÃ ng ?? thanh to?n ho?c ti?p t?c mua s?m.`,
+      actions: [{ id: `cart-${product.id}`, label: 'MÃ£ giá» hÃ ng', type: 'cart' }],
     });
   };
 
   const buyNow = (product: Product) => {
     addToCart(product, 1);
-    router.push(`/product/${product.id}`);
+    router.push(`/(tabs)/product/${product.id}`);
     setOpen(false);
   };
 
@@ -255,10 +268,10 @@ export default function ChatBox() {
                             <Text numberOfLines={2} className="text-[12px] font-black leading-4 text-zinc-900">{suggestion.title}</Text>
                             <Text className="mt-1 text-[11px] text-zinc-500">{suggestion.subtitle}</Text>
                             <View className="mt-3 flex-row gap-2">
-                              <Pressable onPress={() => addProductToCart(suggestion.product)} className="flex-row items-center rounded-full bg-amber-500 px-3 py-2">
+                              <Pressable onPress={(event) => addProductToCart(suggestion.product, event)} className="flex-row items-center rounded-full bg-amber-500 px-3 py-2">
                                 <Plus size={12} color="#ffffff" />
                                 <View className="w-1" />
-                                <Text className="text-[11px] font-black text-white">Them gio</Text>
+                                <Text className="text-[11px] font-black text-white">ThÃªm giá»</Text>
                               </Pressable>
                               <Pressable onPress={() => buyNow(suggestion.product)} className="flex-row items-center rounded-full bg-zinc-950 px-3 py-2">
                                 <ShoppingBag size={12} color="#ffffff" />
@@ -281,7 +294,7 @@ export default function ChatBox() {
               value={text}
               onChangeText={setText}
               onSubmitEditing={() => send()}
-              placeholder="Nhap noi dung can ho tro..."
+              placeholder="Nháº­p n?i dung c?n h? tr?..."
               className="flex-1 rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-900"
             />
             <Pressable onPress={() => send()} className="rounded-xl bg-amber-500 p-2">
@@ -293,3 +306,4 @@ export default function ChatBox() {
     </View>
   );
 }
+

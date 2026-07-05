@@ -21,9 +21,9 @@ type Banner = {
 const banners: Banner[] = [
   {
     tag: 'HOT SALE',
-    title: 'Xa kho cong nghe, uu dai den 50%',
-    desc: 'Dien thoai, laptop va phu kien dang duoc day len trang chu voi muc gia rat de chot don.',
-    note: 'Cap nhat deal moi luc 10:00 va 20:00 moi ngay',
+    title: 'X? kho c?ng ngh?, ?u ??i đơn 50%',
+    desc: 'Điện thoại, laptop và phụ kiện đang được đẩy lên trang chủ với mức giá rất dễ chốt đơn.',
+    note: 'Cập nhật deal mới lúc 10:00 và 20:00 mỗi ngày',
     cta: 'Xem deal cong nghe',
     bgClassName: 'bg-amber-700',
     chipClassName: 'bg-amber-300',
@@ -36,23 +36,23 @@ const banners: Banner[] = [
   },
   {
     tag: 'FASHION WEEK',
-    title: 'Thoi trang he, phoi san pham gon va de mua',
-    desc: 'Ao khoac gio, dam midi va phu kien duoc gom thanh nhom banner de khach vuot danh muc nhanh hon.',
-    note: 'Bo suu tap moi them hang vao thu 2, 4, 6',
-    cta: 'Kham pha thoi trang',
+    title: 'Thời trang he, phoi sản phẩm gon va de mua',
+    desc: 'Áo khoác gió, ??m midi v? ph? ki?n ???c gom th?nh nh?m banner ?? kh?ch vu?t danh m?c nhanh h?n.',
+    note: 'B? s?u t?p m?i th?m hàng v?o th? 2, 4, 6',
+    cta: 'Kh?m ph? th?i trang',
     bgClassName: 'bg-rose-700',
     chipClassName: 'bg-rose-200',
     chipTextClassName: 'text-rose-950',
     buttonClassName: 'bg-zinc-950',
     buttonTextColor: '#ffffff',
     detailIcon: Sparkles,
-    detailLabel: 'Phong cach moi',
+    detailLabel: 'Phong cách mới',
     icon: Shirt,
   },
   {
     tag: 'FREESHIP MAX',
-    title: 'Giao nhanh toan quoc, giam phi cho don tu 150K',
-    desc: 'Nhom banner van chuyen giup dua voucher, mua hang nhanh va thong tin giao nhan len vung nhin dau tien.',
+    title: 'Giao nhanh toàn quốc, giảm phí cho đơn từ 150K',
+    desc: 'Nh?m banner v?n chuy?n gi?p địa voucher, mua hàng nhanh v? thàng tin giao nhận l?n v?ng nhận ??u ti?n.',
     note: 'Ap dung voi nhieu gian hang tham gia chuong trinh',
     cta: 'Lay ma freeship',
     bgClassName: 'bg-emerald-700',
@@ -61,7 +61,7 @@ const banners: Banner[] = [
     buttonClassName: 'bg-white',
     buttonTextColor: '#064e3b',
     detailIcon: Truck,
-    detailLabel: 'Giao 2H noi thanh',
+    detailLabel: 'Giao 2H nội thành',
     icon: Truck,
   },
 ];
@@ -113,7 +113,7 @@ export default function BannerCarousel({ onShopNow }: { onShopNow: () => void })
                 <DetailIcon size={14} color="#ffffff" />
               </View>
               <View className="flex-1">
-                <Text className="text-[10px] font-bold uppercase text-white/65">Diem nhan banner</Text>
+                <Text className="text-[10px] font-bold uppercase text-white/65">Điểm nhan banner</Text>
                 <Text className="text-xs font-black text-white">{banner.detailLabel}</Text>
               </View>
             </View>

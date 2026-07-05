@@ -1,4 +1,4 @@
-import { Image, Pressable, Text, View } from './tw';
+﻿import { Image, Pressable, Text, View } from './tw';
 import { Category } from '../types';
 
 const categoryImages = {
@@ -10,7 +10,7 @@ const categoryImages = {
 } as const;
 
 export default function CategoryCard({ category, onPress }: { category: Category; onPress: () => void }) {
-  const imageUri = categoryImages[category.id as keyof typeof categoryImages] || categoryImages.fashion;
+  const imageUri = category.image || categoryImages[category.id as keyof typeof categoryImages] || categoryImages.fashion;
 
   return (
     <Pressable onPress={onPress} className="w-[48%] overflow-hidden rounded-[22px] border border-gray-100 bg-white">
@@ -18,12 +18,12 @@ export default function CategoryCard({ category, onPress }: { category: Category
         <Image source={{ uri: imageUri }} className="h-24 w-full" resizeMode="cover" />
         <View className="absolute inset-0 bg-black/10" />
         <View className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1">
-          <Text className="text-[9px] font-black uppercase text-zinc-800">Danh muc</Text>
+          <Text className="text-[9px] font-black uppercase text-zinc-800">Danh mục</Text>
         </View>
       </View>
       <View className="px-3 py-3">
         <Text numberOfLines={2} className="text-sm font-black leading-5 text-zinc-900">{category.name}</Text>
-        <Text numberOfLines={1} className="mt-1 text-[11px] text-zinc-500">Cham de xem san pham lien quan</Text>
+        <Text numberOfLines={1} className="mt-1 text-[11px] text-zinc-500">Chạm để xem sản phẩm liên quan</Text>
       </View>
     </Pressable>
   );

@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+﻿import { router } from 'expo-router';
 import { Clock3, CreditCard, Flame, Grid2x2, ShieldCheck, Sparkles, Star, Truck } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, Text, View } from '../../components/tw';
@@ -39,9 +39,9 @@ function SectionHeader({
 
 function PromoRail() {
   const items = [
-    { icon: Truck, title: 'Giao nhanh 2H', desc: 'Noi thanh HN va TP.HCM' },
+    { icon: Truck, title: 'Giao nhanh 2H', desc: 'Ná»™i thÃ nh HN vÃ  TP.HCM' },
     { icon: ShieldCheck, title: 'Hang chinh hang', desc: 'Bao hanh minh bach' },
-    { icon: CreditCard, title: 'Thanh toan linh hoat', desc: 'COD, vi dien tu, bank' },
+    { icon: CreditCard, title: 'Thanh toÃ¡n linh ho?t', desc: 'COD, v? Ä‘iá»‡n tá»­, bank' },
   ];
 
   return (
@@ -103,10 +103,10 @@ function FlashSaleStrip({ products }: { products: Product[] }) {
               <View className="flex-row items-center gap-2">
                 <Text className="text-base font-black uppercase text-red-700">Flash Sale</Text>
                 <View className="rounded-full bg-red-500 px-2 py-1">
-                  <Text className="text-[10px] font-black uppercase text-white">Dang dien ra</Text>
+                  <Text className="text-[10px] font-black uppercase text-white">Äang diá»…n ra</Text>
                 </View>
               </View>
-              <Text className="mt-1 text-[11px] font-bold text-red-950/70">Gia tot trong ngay cho nhom san pham dang duoc day banner</Text>
+              <Text className="mt-1 text-[11px] font-bold text-red-950/70">GiÃ¡ tá»‘t trong ngÃ y cho nhÃ³m sáº£n pháº©m Ä‘ang Ä‘Æ°á»£c Ä‘áº©y banner</Text>
             </View>
           </View>
 
@@ -133,7 +133,7 @@ function FlashSaleStrip({ products }: { products: Product[] }) {
             return (
               <Pressable
                 key={product.id}
-                onPress={() => router.push(`/product/${product.id}`)}
+                onPress={() => router.push(`/(tabs)/product/${product.id}`)}
                 className="w-44 overflow-hidden rounded-2xl border border-white/70 bg-white"
               >
                 <View className="relative">
@@ -155,7 +155,7 @@ function FlashSaleStrip({ products }: { products: Product[] }) {
                   <View className="mt-3 rounded-full bg-red-100 px-2 py-1">
                     <View className="flex-row items-center justify-between">
                       <Text className="text-[10px] font-bold text-red-700">Da ban {soldPercent}%</Text>
-                      <Text className="text-[10px] font-bold text-red-700">Con {product.stock}</Text>
+                      <Text className="text-[10px] font-bold text-red-700">CÃ²n {product.stock}</Text>
                     </View>
                     <View className="mt-1 h-1.5 overflow-hidden rounded-full bg-white">
                       <View className="h-full rounded-full bg-red-500" style={{ width: `${soldPercent}%` }} />
@@ -190,7 +190,7 @@ function ProductGrid({
         <View key={product.id} className="w-[48%]">
           <ProductCard
             product={product}
-            onPress={() => router.push(`/product/${product.id}`)}
+            onPress={() => router.push(`/(tabs)/product/${product.id}`)}
             onFavorite={() => onToggleFavorite(product.id)}
             isFavorite={favorites.includes(product.id)}
           />
@@ -208,7 +208,7 @@ function VoucherPreview() {
         <Text className="text-sm font-black text-amber-900">Vi voucher cua ban</Text>
       </View>
       <Text className="mt-2 text-xs leading-5 text-amber-800">
-        Dung LIXI2026 de giam 100K hoac FREESHIP de tiet kiem phi giao hang cho don tu 150K.
+        DÃ¹ng LIXI2026 Ä‘á»ƒ giáº£m 100K hoáº·c FREESHIP Ä‘á»ƒ tiáº¿t kiá»‡m phÃ­ giao hÃ ng cho Ä‘Æ¡n tá»« 150K.
       </Text>
     </View>
   );
@@ -227,7 +227,7 @@ export default function HomeScreen() {
         <PromoRail />
 
         <View>
-          <SectionHeader title="Danh muc san pham" icon={Grid2x2} action="Tat ca" onPress={() => router.push('/(tabs)/catalog')} />
+          <SectionHeader title="Danh muc sáº£n pháº©m" icon={Grid2x2} action="Táº¥t cáº£" onPress={() => router.push('/(tabs)/catalog')} />
           <View className="flex-row flex-wrap gap-3">
             {categories.map((category) => (
               <CategoryCard
@@ -255,3 +255,4 @@ export default function HomeScreen() {
     </View>
   );
 }
+

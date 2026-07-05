@@ -13,7 +13,7 @@ export default function ReviewForm({ value, setValue, rating, setRating, onSubmi
   return (
     <View className="gap-3">
       <View>
-        <Text className="text-xs font-black uppercase text-zinc-500">Nhap danh gia san pham</Text>
+        <Text className="text-xs font-black uppercase text-zinc-500">Nhập đánh giá sản phẩm</Text>
         <Text className="mt-1 text-[11px] leading-4 text-zinc-500">Chia se cam nhan de nguoi mua sau de tham khao.</Text>
       </View>
 
