@@ -1,12 +1,21 @@
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { ShoppingCart } from 'lucide-react-native';
 import { Pressable, ScrollView, Text, View } from '../../components/tw';
 import Header from '../../components/Header';
 import CartItem from '../../components/CartItem';
 import { useCartStore } from '../../store/cartStore';
+import { useAuthStore } from '../../store/authStore';
 
 export default function CartScreen() {
-  const { cartItems, updateQuantity, removeItem, subtotal } = useCartStore();
+  const { cartItems, updateQuantity, removeItem, hydrateUserCart, subtotal } = useCartStore();
+  const currentUser = useAuthStore((s) => s.currentUser);
+
+  useFocusEffect(
+    useCallback(() => {
+      hydrateUserCart();
+    }, [hydrateUserCart])
+  );
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -36,7 +45,10 @@ export default function CartScreen() {
             <Text className="font-bold">Tạm tính</Text>
             <Text className="font-black text-red-500">{subtotal().toLocaleString('vi-VN')}đ</Text>
           </View>
-          <Pressable onPress={() => router.push('/checkout')} className="rounded-2xl bg-amber-500 py-3">
+          <Pressable
+            onPress={() => router.push(currentUser ? '/checkout' : '/auth?redirect=%2Fcheckout')}
+            className="rounded-2xl bg-amber-500 py-3"
+          >
             <Text className="text-center font-black text-white">Tiến hành thanh toán</Text>
           </Pressable>
         </View>

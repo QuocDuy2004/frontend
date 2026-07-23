@@ -8,22 +8,39 @@ export interface Product {
 export interface CartItem { id: string; product: Product; quantity: number; selectedColor?: string; selectedSize?: string; selectedVersion?: string }
 export interface Voucher { code: string; discountType: 'fixed' | 'percent'; discountValue: number; minOrderValue: number; maxDiscount?: number }
 export interface AppNotification { id: string; title: string; message: string; date?: string; isRead?: boolean; type?: string }
+export interface HomeBanner {
+  id: string;
+  tag: string;
+  title: string;
+  description: string;
+  note?: string;
+  cta: string;
+  targetPath: string;
+  targetParams?: Record<string, unknown>;
+  bgClassName: string;
+  chipClassName: string;
+  chipTextClassName: string;
+  buttonClassName: string;
+  buttonTextColor: string;
+  iconName?: string;
+  detailIconName?: string;
+  detailLabel: string;
+  status?: 'active' | 'inactive' | 'scheduled';
+  sortOrder?: number;
+}
 export interface ShippingMethod { id: string; name: string; price: number; eta?: string }
 export interface PaymentConfig {
   id: string;
   code: 'COD'|'vnpay'|'momo'|'visa'|'bank_transfer'|string;
   name: string;
   title: string;
-  subtitle?: string;
   provider?: string;
   logoType: 'text'|'image';
   logoText?: string;
   logoUri?: string;
   logoBgClassName?: string;
   toneClassName: string;
-  paymentStatusOnOrder: 'pending'|'paid';
   status: 'active'|'inactive';
-  sortOrder?: number;
   config?: Record<string, unknown>;
 }
 export interface OrderItem { productId: string; productName: string; productImage?: string; quantity: number; price: number; selectedColor?: string; selectedSize?: string; selectedVersion?: string }
@@ -40,6 +57,7 @@ export interface UserProfile {
   avatarUrl?: string;
   role?: 'member' | 'seller' | 'admin';
   status?: 'active' | 'blocked' | 'deleted';
+  cart?: string[];
   loyaltyPoints?: number;
   lifetimeValue?: number;
   ordersCount?: number;

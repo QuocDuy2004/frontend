@@ -1,9 +1,0 @@
-Starting project at E:\du-an-duymedia\velocart-expo-split
-Starting Metro Bundler
-
-warning: Bundler cache is empty, rebuilding (this may take a minute)
- WARN  Failed to download the latest version of React Native DevTools. Using a fallback version instead. Connect to the internet or check your network settings.
-Waiting on http://localhost:8083
-An update for expo is available: 56.0.12 → ~56.0.14
-5 other packages may need updating. Run npx expo install --check for details.
-Logs for your project will appear below.

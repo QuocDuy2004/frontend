@@ -6,8 +6,10 @@ import Header from '../../components/Header';
 import BannerCarousel from '../../components/BannerCarousel';
 import CategoryCard from '../../components/CategoryCard';
 import ProductCard from '../../components/ProductCard';
-import { useAppStore } from '../../store/appStore';
-import { Product } from '../../types';
+import { fetchBanners } from '../../lib/api';
+import { useCatalogStore } from '../../store/catalogStore';
+import { useFavoriteStore } from '../../store/favoriteStore';
+import { HomeBanner, Product } from '../../types';
 
 function SectionHeader({
   title,
@@ -39,9 +41,9 @@ function SectionHeader({
 
 function PromoRail() {
   const items = [
-    { icon: Truck, title: 'Giao nhanh 2H', desc: 'Ná»™i thÃ nh HN vÃ  TP.HCM' },
-    { icon: ShieldCheck, title: 'Hang chinh hang', desc: 'Bao hanh minh bach' },
-    { icon: CreditCard, title: 'Thanh toÃ¡n linh ho?t', desc: 'COD, v? Ä‘iá»‡n tá»­, bank' },
+    { icon: Truck, title: 'Giao nhanh 2H', desc: 'Nội thành HN và TP.HCM' },
+    { icon: ShieldCheck, title: 'Hàng chính hãng', desc: 'Bảo hành minh bạch' },
+    { icon: CreditCard, title: 'Thanh toán linh hoạt', desc: 'COD, ví điện tử, bank' },
   ];
 
   return (
@@ -103,17 +105,17 @@ function FlashSaleStrip({ products }: { products: Product[] }) {
               <View className="flex-row items-center gap-2">
                 <Text className="text-base font-black uppercase text-red-700">Flash Sale</Text>
                 <View className="rounded-full bg-red-500 px-2 py-1">
-                  <Text className="text-[10px] font-black uppercase text-white">Äang diá»…n ra</Text>
+                  <Text className="text-[10px] font-black uppercase text-white">Đang diễn ra</Text>
                 </View>
               </View>
-              <Text className="mt-1 text-[11px] font-bold text-red-950/70">GiÃ¡ tá»‘t trong ngÃ y cho nhÃ³m sáº£n pháº©m Ä‘ang Ä‘Æ°á»£c Ä‘áº©y banner</Text>
+              <Text className="mt-1 text-[11px] font-bold text-red-950/70">Giá tốt trong ngày cho nhóm sản phẩm đang được đẩy banner</Text>
             </View>
           </View>
 
           <View className="rounded-2xl border border-red-200 bg-white/80 px-3 py-2">
             <View className="mb-1 flex-row items-center gap-1">
               <Clock3 size={14} color="#b91c1c" />
-              <Text className="text-[10px] font-bold uppercase text-red-700">Ket thuc sau</Text>
+              <Text className="text-[10px] font-bold uppercase text-red-700">Kết thúc sau</Text>
             </View>
             <View className="flex-row items-center gap-1.5">
               {[remaining.hours, remaining.minutes, remaining.seconds].map((value, index) => (
@@ -154,8 +156,8 @@ function FlashSaleStrip({ products }: { products: Product[] }) {
 
                   <View className="mt-3 rounded-full bg-red-100 px-2 py-1">
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-[10px] font-bold text-red-700">Da ban {soldPercent}%</Text>
-                      <Text className="text-[10px] font-bold text-red-700">CÃ²n {product.stock}</Text>
+                      <Text className="text-[10px] font-bold text-red-700">Đã bán {soldPercent}%</Text>
+                      <Text className="text-[10px] font-bold text-red-700">Còn {product.stock}</Text>
                     </View>
                     <View className="mt-1 h-1.5 overflow-hidden rounded-full bg-white">
                       <View className="h-full rounded-full bg-red-500" style={{ width: `${soldPercent}%` }} />
@@ -168,7 +170,7 @@ function FlashSaleStrip({ products }: { products: Product[] }) {
         </ScrollView>
 
         <Pressable onPress={() => router.push('/(tabs)/catalog')} className="mt-4 self-start rounded-full bg-white px-4 py-2">
-          <Text className="text-[11px] font-black uppercase text-red-700">Xem tat ca deal hom nay</Text>
+          <Text className="text-[11px] font-black uppercase text-red-700">Xem tất cả deal hôm nay</Text>
         </Pressable>
       </View>
     </View>
@@ -205,29 +207,61 @@ function VoucherPreview() {
     <View className="rounded-3xl border border-dashed border-amber-300 bg-amber-50 p-4">
       <View className="flex-row items-center gap-2">
         <Sparkles size={18} color="#d97706" />
-        <Text className="text-sm font-black text-amber-900">Vi voucher cua ban</Text>
+        <Text className="text-sm font-black text-amber-900">Ví voucher của bạn</Text>
       </View>
       <Text className="mt-2 text-xs leading-5 text-amber-800">
-        DÃ¹ng LIXI2026 Ä‘á»ƒ giáº£m 100K hoáº·c FREESHIP Ä‘á»ƒ tiáº¿t kiá»‡m phÃ­ giao hÃ ng cho Ä‘Æ¡n tá»« 150K.
+        Dùng LIXI2026 để giảm 100K hoặc FREESHIP để tiết kiệm phí giao hàng cho đơn từ 150K.
       </Text>
     </View>
   );
 }
 
 export default function HomeScreen() {
-  const { categories, products, favorites, onToggleFavorite } = useAppStore();
+  const { categories, products } = useCatalogStore();
+  const { favorites, onToggleFavorite } = useFavoriteStore();
+  const [banners, setBanners] = useState<HomeBanner[]>([]);
   const flashSale = products.filter((product) => product.flashSalePrice);
   const featured = products.filter((product) => product.isBestSeller || product.isNew).slice(0, 4);
+
+  useEffect(() => {
+    let alive = true;
+
+    fetchBanners()
+      .then((items) => {
+        if (alive) setBanners(items);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const handleBannerPress = (banner: HomeBanner) => {
+    const params = { ...(banner.targetParams || {}) } as Record<string, unknown>;
+    const categorySlug = typeof params.categorySlug === 'string' ? params.categorySlug : '';
+    const matchedCategory = categorySlug ? categories.find((category) => category.slug === categorySlug) : undefined;
+
+    if (matchedCategory) {
+      params.category = matchedCategory.id;
+      delete params.categorySlug;
+    }
+
+    router.push({
+      pathname: banner.targetPath as never,
+      params: params as never,
+    });
+  };
 
   return (
     <View className="flex-1 bg-gray-50">
       <Header />
       <ScrollView className="flex-1" contentContainerClassName="gap-5 p-4 pb-24">
-        <BannerCarousel onShopNow={() => router.push('/(tabs)/catalog')} />
+        <BannerCarousel banners={banners} onBannerPress={handleBannerPress} />
         <PromoRail />
 
         <View>
-          <SectionHeader title="Danh muc sáº£n pháº©m" icon={Grid2x2} action="Táº¥t cáº£" onPress={() => router.push('/(tabs)/catalog')} />
+          <SectionHeader title="Danh mục sản phẩm" icon={Grid2x2} action="Tất cả" onPress={() => router.push('/(tabs)/catalog')} />
           <View className="flex-row flex-wrap gap-3">
             {categories.map((category) => (
               <CategoryCard
@@ -242,7 +276,7 @@ export default function HomeScreen() {
         {flashSale.length > 0 ? <FlashSaleStrip products={flashSale} /> : null}
 
         <View>
-          <SectionHeader title="Noi bat va ban chay" icon={Star} action="Mua ngay" onPress={() => router.push('/(tabs)/catalog')} />
+          <SectionHeader title="Nổi bật và bán chạy" icon={Star} action="Mua ngay" onPress={() => router.push('/(tabs)/catalog')} />
           <ProductGrid
             products={featured.length > 0 ? featured : products.slice(0, 4)}
             favorites={favorites}

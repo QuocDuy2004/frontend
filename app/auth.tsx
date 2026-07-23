@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft,
   Check,
@@ -17,7 +17,7 @@ import type { ReactNode } from 'react';
 import { Platform } from 'react-native';
 import { Image, KeyboardAvoidingView, Pressable, ScrollView, Text, TextInput, View } from '../components/tw';
 import { API_BASE_URL, loginWithPassword, registerAccount, type AuthSession } from '../lib/api';
-import { useAppStore } from '../store/appStore';
+import { useAuthStore } from '../store/authStore';
 
 type AuthMode = 'login' | 'register';
 
@@ -26,7 +26,8 @@ const googleLogo = 'https://developers.google.com/identity/images/g-logo.png';
 const facebookLogo = 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b9/2023_Facebook_icon.svg/120px-2023_Facebook_icon.svg.png';
 
 export default function AuthScreen() {
-  const onLogin = useAppStore(s => s.onLogin);
+  const { redirect } = useLocalSearchParams<{ redirect?: string }>();
+  const onLogin = useAuthStore(s => s.onLogin);
   const [mode, setMode] = useState<AuthMode>('login');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -68,7 +69,8 @@ export default function AuthScreen() {
       session,
     );
     setSuccessMsg(isLogin ? 'Đăng nhập thành công!' : 'Đăng ký tài khoản thành công!');
-    setTimeout(() => router.replace('/(tabs)/account'), 500);
+    const redirectPath = typeof redirect === 'string' && redirect.startsWith('/') ? redirect : '/(tabs)/account';
+    setTimeout(() => router.replace(redirectPath as never), 500);
   };
 
   const handleSubmit = async () => {

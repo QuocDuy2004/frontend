@@ -14,7 +14,7 @@ export default function ReviewForm({ value, setValue, rating, setRating, onSubmi
     <View className="gap-3">
       <View>
         <Text className="text-xs font-black uppercase text-zinc-500">Nhập đánh giá sản phẩm</Text>
-        <Text className="mt-1 text-[11px] leading-4 text-zinc-500">Chia se cam nhan de nguoi mua sau de tham khao.</Text>
+        <Text className="mt-1 text-[11px] leading-4 text-zinc-500">Chia sẻ cảm nhận để người mua sau dễ tham khảo.</Text>
       </View>
 
       <View className="flex-row items-center gap-2">
@@ -23,19 +23,19 @@ export default function ReviewForm({ value, setValue, rating, setRating, onSubmi
             <Star size={16} color="#f59e0b" fill={item <= rating ? '#f59e0b' : 'transparent'} />
           </Pressable>
         ))}
-        <Text className="text-xs font-bold text-zinc-600">{rating}/5 sao</Text>
+        <Text className="text-xs font-bold text-zinc-600">{rating > 0 ? `${rating}/5 sao` : 'Chưa chọn sao'}</Text>
       </View>
 
       <TextInput
         value={value}
         onChangeText={setValue}
         multiline
-        placeholder="Viet nhan xet cua ban..."
+        placeholder="Viết nhận xét của bạn..."
         className="min-h-28 rounded-2xl border border-zinc-200 bg-gray-50 p-3 text-xs text-zinc-900"
       />
 
-      <Pressable onPress={onSubmit} className="rounded-xl bg-amber-500 py-3">
-        <Text className="text-center text-sm font-bold text-white">Gui danh gia</Text>
+      <Pressable onPress={onSubmit} disabled={rating === 0 || !value.trim()} className={`rounded-xl py-3 ${rating === 0 || !value.trim() ? 'bg-zinc-300' : 'bg-amber-500'}`}>
+        <Text className="text-center text-sm font-bold text-white">Gửi đánh giá</Text>
       </Pressable>
     </View>
   );

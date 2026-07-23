@@ -10,9 +10,13 @@ import {
 import ChatBox from '../components/ChatBox';
 import { CartFlyProvider } from '../components/CartFlyProvider';
 import { View } from '../components/tw';
-import { fetchCatalogData } from '../lib/api';
-import { useAppStore } from '../store/appStore';
-import { seedCategories, seedNotifications, seedOrders, seedProducts, seedVouchers } from '../store/seedData';
+import { useAuthStore } from '../store/authStore';
+import { useCatalogStore } from '../store/catalogStore';
+import { useFavoriteStore } from '../store/favoriteStore';
+import { useNotificationStore } from '../store/notificationStore';
+import { useOrderStore } from '../store/orderStore';
+import { useVoucherStore } from '../store/voucherStore';
+import { useCartStore } from '../store/cartStore';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -21,42 +25,40 @@ export default function RootLayout() {
     'Signika SemiBold': Signika_600SemiBold,
     'Signika Bold': Signika_700Bold,
   });
-  const productsCount = useAppStore(s => s.products.length);
-  const setInitialData = useAppStore(s => s.setInitialData);
-  const hydrateAuthSession = useAppStore(s => s.hydrateAuthSession);
-  const hydrateFavorites = useAppStore(s => s.hydrateFavorites);
+  const hydrateCatalog = useCatalogStore(s => s.hydrateCatalog);
+  const hydrateAuthSession = useAuthStore(s => s.hydrateAuthSession);
+  const hydrateFavorites = useFavoriteStore(s => s.hydrateFavorites);
+  const hydrateNotifications = useNotificationStore(s => s.hydrateNotifications);
+  const hydrateVouchers = useVoucherStore(s => s.hydrateVouchers);
+  const hydrateUserOrders = useOrderStore(s => s.hydrateUserOrders);
+  const currentUserId = useAuthStore(s => s.currentUser?.id);
+  const currentUserEmail = useAuthStore(s => s.currentUser?.email);
+  const productIdsKey = useCatalogStore(s => s.products.map(product => product.id).join('|'));
+  const hydrateUserCart = useCartStore(s => s.hydrateUserCart);
 
   useEffect(() => {
-    let mounted = true;
-
-    if (productsCount === 0) {
-      setInitialData({
-        products: seedProducts,
-        categories: seedCategories,
-        vouchers: seedVouchers,
-        notifications: seedNotifications,
-        orders: seedOrders,
-      });
-
-      fetchCatalogData()
-        .then(({ categories, products }) => {
-          if (!mounted || categories.length === 0 || products.length === 0) return;
-          setInitialData({ categories, products });
-        })
-        .catch((error) => {
-          console.warn('Could not load catalog from backend:', error?.message || error);
-        });
-    }
-
-    return () => {
-      mounted = false;
-    };
-  }, [productsCount, setInitialData]);
+    hydrateCatalog().catch((error) => {
+      console.warn('Could not load catalog from backend:', error?.message || error);
+    });
+  }, [hydrateCatalog]);
 
   useEffect(() => {
-    hydrateAuthSession();
+    hydrateAuthSession().finally(() => {
+      hydrateFavorites();
+      hydrateNotifications().catch(() => undefined);
+      hydrateVouchers().catch(() => undefined);
+      hydrateUserOrders().catch(() => undefined);
+    });
+  }, [hydrateAuthSession, hydrateFavorites, hydrateNotifications, hydrateUserOrders, hydrateVouchers]);
+
+  useEffect(() => {
+    if ((!currentUserId && !currentUserEmail) || !productIdsKey) return;
+    hydrateUserCart();
     hydrateFavorites();
-  }, [hydrateAuthSession, hydrateFavorites]);
+    hydrateNotifications().catch(() => undefined);
+    hydrateVouchers().catch(() => undefined);
+    hydrateUserOrders().catch(() => undefined);
+  }, [currentUserEmail, currentUserId, hydrateFavorites, hydrateNotifications, hydrateUserCart, hydrateUserOrders, hydrateVouchers, productIdsKey]);
 
   if (!fontsLoaded) return null;
 

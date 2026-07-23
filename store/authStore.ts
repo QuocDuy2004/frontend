@@ -1,33 +1,18 @@
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   clearAuthSession,
   fetchUserByEmail,
   getStoredAuthSession,
   saveAuthSession,
-  type AuthSession,
   updateUserProfile,
+  type AuthSession,
 } from '../lib/api';
-import { AppNotification, Category, Order, Product, UserProfile, Voucher } from '../types';
+import { UserProfile } from '../types';
 
-const FAVORITES_STORAGE_KEY = 'velocart_favorites';
-
-interface AppStore {
-  products: Product[];
-  categories: Category[];
-  vouchers: Voucher[];
-  notifications: AppNotification[];
-  orders: Order[];
+interface AuthStore {
   currentUser: UserProfile | null;
   authToken: string | null;
   authHydrated: boolean;
-  favorites: string[];
-  setInitialData: (data: Partial<Pick<AppStore,'products'|'categories'|'vouchers'|'notifications'|'orders'|'currentUser'|'favorites'>>) => void;
-  onToggleFavorite: (productId: string) => void;
-  hydrateFavorites: () => Promise<void>;
-  onAddReview: (productId: string, review: any) => void;
-  onPlaceOrder: (order: Order) => void;
-  onUpdateInventory: (productId: string, quantity: number) => void;
   onLogin: (user: UserProfile, token?: string | null, persist?: boolean, sessionMeta?: Partial<AuthSession>) => Promise<void>;
   onLogout: () => Promise<void>;
   hydrateAuthSession: () => Promise<void>;
@@ -35,34 +20,10 @@ interface AppStore {
   updateCurrentUserProfile: (payload: Pick<UserProfile, 'name' | 'email' | 'phone' | 'address'>) => Promise<void>;
 }
 
-export const useAppStore = create<AppStore>((set, get) => ({
-  products: [], categories: [], vouchers: [], notifications: [], orders: [], currentUser: null, authToken: null, authHydrated: false, favorites: [],
-  setInitialData: (data) => set((s) => ({ ...s, ...data })),
-  onToggleFavorite: (productId) => {
-    const current = get().favorites;
-    const favorites = current.includes(productId)
-      ? current.filter(id => id !== productId)
-      : [productId, ...current];
-
-    set({ favorites });
-    AsyncStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favorites)).catch(() => undefined);
-  },
-  hydrateFavorites: async () => {
-    const raw = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
-    if (!raw) return;
-
-    try {
-      const favorites = JSON.parse(raw);
-      if (Array.isArray(favorites)) {
-        set({ favorites: favorites.map(String) });
-      }
-    } catch {
-      await AsyncStorage.removeItem(FAVORITES_STORAGE_KEY);
-    }
-  },
-  onAddReview: (productId, review) => set((s) => ({ products: s.products.map(p => p.id === productId ? { ...p, reviews: [...(p.reviews || []), review], reviewCount: (p.reviewCount || 0) + 1 } : p) })),
-  onPlaceOrder: (order) => set((s) => ({ orders: [order, ...s.orders] })),
-  onUpdateInventory: (productId, quantity) => set((s) => ({ products: s.products.map(p => p.id === productId ? { ...p, stock: Math.max(0, p.stock - quantity) } : p) })),
+export const useAuthStore = create<AuthStore>((set, get) => ({
+  currentUser: null,
+  authToken: null,
+  authHydrated: false,
   onLogin: async (user, token = null, persist = true, sessionMeta = {}) => {
     const nextToken = token || get().authToken;
     const normalizedUser = { ...user, avatar: user.avatar || user.avatarUrl };

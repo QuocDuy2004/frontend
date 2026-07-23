@@ -2,6 +2,7 @@ import { Heart, Star } from 'lucide-react-native';
 import type { GestureResponderEvent } from 'react-native';
 import { Image, Pressable, Text, View } from './tw';
 import { Product } from '../types';
+import { formatCurrency, getProductSalePrice } from '../lib/pricing';
 
 type ProductCardProps = {
   product: Product;
@@ -18,6 +19,7 @@ export default function ProductCard({
   isFavorite,
   horizontal = false,
 }: ProductCardProps) {
+  const salePrice = getProductSalePrice(product);
   const handleFavoritePress = (event: GestureResponderEvent) => {
     event.stopPropagation();
     onFavorite?.();
@@ -45,7 +47,7 @@ export default function ProductCard({
           <Text className="text-[10px] text-gray-500">{product.rating || 5} • {product.reviewCount || 0} đánh giá</Text>
         </View>
         <View className="mt-1 flex-row flex-wrap items-baseline gap-1">
-          <Text className="text-sm font-black text-red-500">{product.discountPrice.toLocaleString('vi-VN')}đ</Text>
+          <Text className="text-sm font-black text-red-500">{formatCurrency(salePrice)}</Text>
           <Text className="text-[10px] text-gray-400 line-through">{product.originalPrice.toLocaleString('vi-VN')}đ</Text>
         </View>
       </View>

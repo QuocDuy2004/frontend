@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from '../../components/tw';
 import Header from '../../components/Header';
 import ProductCard from '../../components/ProductCard';
-import { useAppStore } from '../../store/appStore';
+import { useCatalogStore } from '../../store/catalogStore';
+import { useFavoriteStore } from '../../store/favoriteStore';
+import { getProductSalePrice } from '../../lib/pricing';
 
 type SortMode = 'popular' | 'price-asc' | 'price-desc' | 'name-asc';
 
@@ -15,11 +17,10 @@ const sortOptions: { key: SortMode; label: string }[] = [
   { key: 'name-asc', label: 'Tên A-Z' },
 ];
 
-const getDisplayPrice = (price: { flashSalePrice?: number; discountPrice: number }) => price.flashSalePrice || price.discountPrice;
-
 export default function CatalogScreen() {
   const params = useLocalSearchParams<{ category?: string }>();
-  const { products, categories, favorites, onToggleFavorite } = useAppStore();
+  const { products, categories } = useCatalogStore();
+  const { favorites, onToggleFavorite } = useFavoriteStore();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState(params.category || 'all');
   const [sortMode, setSortMode] = useState<SortMode>('popular');
@@ -47,9 +48,9 @@ export default function CatalogScreen() {
 
       switch (sortMode) {
         case 'price-asc':
-          return getDisplayPrice(a) - getDisplayPrice(b);
+          return getProductSalePrice(a) - getProductSalePrice(b);
         case 'price-desc':
-          return getDisplayPrice(b) - getDisplayPrice(a);
+          return getProductSalePrice(b) - getProductSalePrice(a);
         case 'name-asc':
           return a.name.localeCompare(b.name);
         case 'popular':

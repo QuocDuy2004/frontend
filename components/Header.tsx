@@ -3,12 +3,12 @@ import { Pressable, Text, View } from './tw';
 import { Bell, ShoppingBag } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useCartStore } from '../store/cartStore';
-import { useAppStore } from '../store/appStore';
+import { useNotificationStore } from '../store/notificationStore';
 import { useCartFlyAnimation } from './CartFlyProvider';
 
 export default function Header() {
   const count = useCartStore(s => s.cartItems.reduce((sum, item) => sum + item.quantity, 0));
-  const unread = useAppStore(s => s.notifications.filter(n => !n.isRead).length);
+  const unread = useNotificationStore(s => s.notifications.filter(n => !n.isRead).length);
   const cartRef = useRef<any>(null);
   const { registerCartTarget } = useCartFlyAnimation();
 
