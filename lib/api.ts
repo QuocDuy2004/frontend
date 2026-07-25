@@ -433,7 +433,7 @@ export async function loginWithPassword(payload: { usernameOrEmail: string; pass
     tokenType?: string;
     expiresIn?: string;
     user: BackendUser;
-  }>('/api/auth/login', payload);
+  }>('/auth/login', payload);
 
   return {
     token: data['jwt-token'],
@@ -453,7 +453,7 @@ export async function registerAccount(payload: {
   const username =
     payload.email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 28) || `user${Date.now()}`;
 
-  await post<{ ok: true; user: BackendUser }>('/api/auth/register', {
+  await post<{ ok: true; user: BackendUser }>('/auth/register', {
     username,
     password: payload.password,
     name: payload.name,
@@ -490,7 +490,7 @@ const pickProductIds = (data: { favorites?: unknown[]; productIds?: unknown[] })
   normalizeProductIds(Array.isArray(data.productIds) ? data.productIds : data.favorites);
 
 export async function fetchUserByEmail(email: string, token?: string) {
-  const data = await get<{ ok: true; user: BackendUser }>(`/api/users/email/${enc(email)}`, token);
+  const data = await get<{ ok: true; user: BackendUser }>(`/users/email/${enc(email)}`, token);
   return normalizeUser(data.user);
 }
 
@@ -499,13 +499,13 @@ export async function updateUserProfile(
   payload: Pick<UserProfile, 'name' | 'email' | 'phone' | 'address'> & Pick<Partial<UserProfile>, 'role' | 'status'>,
   token?: string,
 ) {
-  const data = await put<{ ok: true; user: BackendUser }>(`/api/users/${enc(userId)}`, payload, token);
+  const data = await put<{ ok: true; user: BackendUser }>(`/users/${enc(userId)}`, payload, token);
   return normalizeUser(data.user);
 }
 
 export async function addUserCartProduct(userId: string, productId: string, quantity = 1, token?: string) {
   const data = await post<{ ok: true; user: BackendUser }>(
-    `/api/users/${enc(userId)}/cart/${enc(productId)}`,
+    `/users/${enc(userId)}/cart/${enc(productId)}`,
     { quantity },
     token,
   );
@@ -513,13 +513,13 @@ export async function addUserCartProduct(userId: string, productId: string, quan
 }
 
 export async function removeUserCartProduct(userId: string, productId: string, token?: string) {
-  const data = await del<{ ok: true; user: BackendUser }>(`/api/users/${enc(userId)}/cart/${enc(productId)}`, token);
+  const data = await del<{ ok: true; user: BackendUser }>(`/users/${enc(userId)}/cart/${enc(productId)}`, token);
   return normalizeUser(data.user);
 }
 
 export async function fetchUserCart(userId: string, token?: string) {
   const data = await get<{ ok: true; cart?: unknown[]; productIds?: unknown[] }>(
-    `/api/users/${enc(userId)}/cart`,
+    `/users/${enc(userId)}/cart`,
     token,
   );
   return normalizeCartItems(Array.isArray(data.cart) ? data.cart : data.productIds);
@@ -528,7 +528,7 @@ export async function fetchUserCart(userId: string, token?: string) {
 export async function addUserFavoriteProduct(userId: string, productId: string, token?: string) {
   return pickProductIds(
     await post<{ ok: true; favorites?: unknown[]; productIds?: unknown[] }>(
-      `/api/users/${enc(userId)}/favorites/${enc(productId)}`,
+      `/users/${enc(userId)}/favorites/${enc(productId)}`,
       undefined,
       token,
     ),
@@ -538,7 +538,7 @@ export async function addUserFavoriteProduct(userId: string, productId: string, 
 export async function removeUserFavoriteProduct(userId: string, productId: string, token?: string) {
   return pickProductIds(
     await del<{ ok: true; favorites?: unknown[]; productIds?: unknown[] }>(
-      `/api/users/${enc(userId)}/favorites/${enc(productId)}`,
+      `/users/${enc(userId)}/favorites/${enc(productId)}`,
       token,
     ),
   );
@@ -546,7 +546,7 @@ export async function removeUserFavoriteProduct(userId: string, productId: strin
 
 export async function fetchUserFavorites(userId: string, token?: string) {
   return pickProductIds(
-    await get<{ ok: true; favorites?: unknown[]; productIds?: unknown[] }>(`/api/users/${enc(userId)}/favorites`, token),
+    await get<{ ok: true; favorites?: unknown[]; productIds?: unknown[] }>(`/users/${enc(userId)}/favorites`, token),
   );
 }
 
@@ -555,14 +555,14 @@ export async function fetchUserFavorites(userId: string, token?: string) {
 // ============================================================================
 
 export async function fetchBanners() {
-  const data = await get<{ ok: true; banners: BackendBanner[] }>('/api/banners');
+  const data = await get<{ ok: true; banners: BackendBanner[] }>('/banners');
   return data.banners.map(normalizeBanner).filter((banner) => banner.id && banner.title);
 }
 
 export async function fetchCatalogData() {
   const [categoriesData, productsData] = await Promise.all([
-    get<{ ok: true; categories: BackendCategory[] }>('/api/categories'),
-    get<{ ok: true; products: BackendProduct[] }>('/api/products'),
+    get<{ ok: true; categories: BackendCategory[] }>('/categories'),
+    get<{ ok: true; products: BackendProduct[] }>('/products'),
   ]);
 
   return {
@@ -576,13 +576,13 @@ export async function fetchCatalogData() {
 // ============================================================================
 
 export async function createOrder(order: Order & { userId?: string; note?: string }, token?: string) {
-  const data = await post<{ ok: true; order: BackendOrder }>('/api/orders', order, token);
+  const data = await post<{ ok: true; order: BackendOrder }>('/orders', order, token);
   return normalizeOrder(data.order);
 }
 
 export async function fetchUserOrders(userIdentifier: string, token?: string) {
   const data = await get<{ ok: true; orders: BackendOrder[] }>(
-    `/api/orders${identifierQuery(userIdentifier)}`,
+    `/orders${identifierQuery(userIdentifier)}`,
     token,
   );
   return data.orders.map(normalizeOrder);
@@ -594,7 +594,7 @@ export async function fetchUserOrders(userIdentifier: string, token?: string) {
 
 export async function fetchVouchers(userIdentifier?: string, token?: string) {
   const data = await get<{ ok: true; vouchers: BackendVoucher[] }>(
-    `/api/vouchers${identifierQuery(userIdentifier)}`,
+    `/vouchers${identifierQuery(userIdentifier)}`,
     token,
   );
   return data.vouchers.map(normalizeVoucher).filter((voucher) => voucher.code);
@@ -606,7 +606,7 @@ export async function fetchVouchers(userIdentifier?: string, token?: string) {
 
 export async function fetchNotifications(userIdentifier?: string, token?: string) {
   const data = await get<{ ok: true; notifications: BackendNotification[] }>(
-    `/api/notifications${identifierQuery(userIdentifier)}`,
+    `/notifications${identifierQuery(userIdentifier)}`,
     token,
   );
   return data.notifications.map(normalizeNotification).filter((notification) => notification.id);
@@ -617,7 +617,7 @@ export async function fetchNotifications(userIdentifier?: string, token?: string
 // ============================================================================
 
 export const fetchPayments = async () =>
-  (await get<{ ok: true; payments: PaymentConfig[] }>('/api/payments')).payments;
+  (await get<{ ok: true; payments: PaymentConfig[] }>('/payments')).payments;
 
 export const createVNPayPayment = (
   orderId: string,
@@ -628,7 +628,7 @@ export const createVNPayPayment = (
   clientReturnUrl?: string,
 ) =>
   post<{ ok: true; paymentUrl: string; source?: 'merchant' | 'tryitnow'; warning?: string }>(
-    '/api/payments/vnpay/create',
+    '/payments/vnpay/create',
     { orderId, amount, orderInfo, useTryItNow, clientReturnUrl },
     token,
   );
@@ -641,7 +641,7 @@ export const createVNPayTokenPayment = (
   clientReturnUrl?: string,
 ) =>
   post<{ ok: true; paymentUrl: string; source?: 'token_ui' | 'merchant' | 'tryitnow'; warning?: string }>(
-    '/api/payments/vnpay/token/create',
+    '/payments/vnpay/token/create',
     { orderId, userId, amount, clientReturnUrl },
     token,
   );
@@ -654,7 +654,7 @@ export const confirmVNPayTryItNowPayment = (params: Record<string, string>, toke
     status: 'success' | 'failed';
     message: string;
     total?: number;
-  }>('/api/payments/vnpay/tryitnow/confirm', { params }, token);
+  }>('/payments/vnpay/tryitnow/confirm', { params }, token);
 
 export const createMoMoPayment = (
   orderId: string,
@@ -664,7 +664,7 @@ export const createMoMoPayment = (
   token?: string,
 ) =>
   post<{ ok: true; payUrl: string; qrCodeUrl?: string; deeplink?: string }>(
-    '/api/payments/momo/create',
+    '/payments/momo/create',
     { orderId, amount, orderInfo, extraData },
     token,
   );
@@ -677,7 +677,7 @@ export const createVisaPayment = (
   clientReturnUrl?: string,
 ) =>
   post<{ ok: true; paymentUrl: string; source?: 'merchant' | 'tryitnow'; warning?: string }>(
-    '/api/payments/visa/create',
+    '/payments/visa/create',
     { orderId, amount, orderInfo, clientReturnUrl },
     token,
   );
@@ -692,7 +692,7 @@ export const createBankTransferPayment = (orderId: string, amount: number, payer
     accountName: string;
     transferContent: string;
     qrUrl: string;
-  }>('/api/payments/bank-transfer/create', { orderId, amount, payerName }, token);
+  }>('/payments/bank-transfer/create', { orderId, amount, payerName }, token);
 
 export const fetchBankTransferStatus = (orderId: string, token?: string) =>
   get<{
@@ -702,10 +702,10 @@ export const fetchBankTransferStatus = (orderId: string, token?: string) =>
     paymentStatus: string;
     orderStatus: string;
     paid: boolean;
-  }>(`/api/payments/bank-transfer/status/${enc(orderId)}`, token);
+  }>(`/payments/bank-transfer/status/${enc(orderId)}`, token);
 
 export const syncBankTransferTransactions = (token?: string) =>
-  post<{ ok: true; matched: number; transactions: number }>('/api/payments/bank-transfer/sync', undefined, token);
+  post<{ ok: true; matched: number; transactions: number }>('/payments/bank-transfer/sync', undefined, token);
 
 // ============================================================================
 // Settings
@@ -720,7 +720,7 @@ export type MobileSetting = {
 
 export const fetchSettings = (includeInactive = false, token?: string) =>
   get<{ ok: true; settings: MobileSetting[] }>(
-    `/api/settings${includeInactive ? '?includeInactive=true' : ''}`,
+    `/settings${includeInactive ? '?includeInactive=true' : ''}`,
     token,
   );
 
@@ -755,14 +755,14 @@ export type MobileSupportTicket = {
 };
 
 export const saveSupportTicket = (ticket: MobileSupportTicket, token?: string) =>
-  post<{ ok: true; ticket: MobileSupportTicket }>('/api/support/tickets', ticket, token);
+  post<{ ok: true; ticket: MobileSupportTicket }>('/support/tickets', ticket, token);
 
 export const fetchSupportTicket = (ticketId: string, token?: string) =>
-  get<{ ok: true; ticket: MobileSupportTicket }>(`/api/support/tickets/${enc(ticketId)}`, token);
+  get<{ ok: true; ticket: MobileSupportTicket }>(`/support/tickets/${enc(ticketId)}`, token);
 
 export const addSupportTicketMessage = (ticketId: string, message: MobileSupportMessage, token?: string) =>
   post<{ ok: true; ticket: MobileSupportTicket }>(
-    `/api/support/tickets/${enc(ticketId)}/messages`,
+    `/support/tickets/${enc(ticketId)}/messages`,
     message,
     token,
   );
@@ -798,4 +798,4 @@ export const askCustomerSupportAi = (payload: {
     intent?: string;
     recommendedActions?: string[];
     note?: string;
-  }>('/api/ai/customer-support', payload);
+  }>('/ai/customer-support', payload);
