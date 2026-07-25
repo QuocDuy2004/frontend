@@ -15,7 +15,7 @@ export type AuthSession = {
   user: UserProfile;
 };
 
-const DEFAULT_API_BASE_URL = 'https://backend-5nxv.vercel.app';
+const DEFAULT_API_BASE_URL = 'https://backend-5nxv.vercel.app/api';
 
 const normalizeBaseUrl = (value?: string) => value?.trim().replace(/\/$/, '');
 
@@ -24,21 +24,24 @@ const getApiBaseUrl = () => {
   if (envBaseUrl) return envBaseUrl;
 
   if (typeof __DEV__ !== 'undefined' && __DEV__) {
-    if (Platform.OS === 'android') return 'http://10.0.2.2:3000';
+    if (Platform.OS === 'android') return 'http://10.0.2.2:3000/api';
     if (Platform.OS === 'web') {
       const hostname = (globalThis as any)?.location?.hostname;
       if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
-        return `http://${hostname}:3000`;
+        return `http://${hostname}:3000/api`;
       }
     }
-    return 'http://localhost:3000';
+    return 'http://localhost:3000/api';
   }
 
   return DEFAULT_API_BASE_URL;
 };
 
 export const API_BASE_URL = getApiBaseUrl();
-export const apiUrl = (path: string) => `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+export const apiUrl = (path: string) => {
+  const endpoint = path.replace(/^\/?api(?=\/|$)/, '').replace(/^\/?/, '/');
+  return `${API_BASE_URL}${endpoint}`;
+};
 
 export async function apiRequest<T>(path: string, options: RequestInit = {}, token?: string): Promise<T> {
   const response = await fetch(apiUrl(path), {
